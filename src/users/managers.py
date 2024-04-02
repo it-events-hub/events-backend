@@ -1,4 +1,5 @@
 from django.contrib.auth.base_user import BaseUserManager
+from django.contrib.auth.hashers import make_password
 
 SUPERUSER_FIELDS_ERROR = (
     "Суперпользователь должен иметь is_staff=True, is_superuser=True и is_active=True."
@@ -33,7 +34,7 @@ class MyUserManager(BaseUserManager):
             last_name=last_name,
             **extra_fields
         )
-        user.set_password(password)
+        user.password = make_password(password)
         user.save(using=self._db)
         return user
 
