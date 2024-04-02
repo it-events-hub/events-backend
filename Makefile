@@ -1,3 +1,6 @@
+startapp:
+	cd src; python3 manage.py startapp <name>
+
 run:
 	cd src; python3 manage.py runserver
 
