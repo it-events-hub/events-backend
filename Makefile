@@ -14,7 +14,7 @@ migrate:
 	cd src; python3 manage.py migrate
 
 superuser:
-	cd src; python3 manage.py createsuperuser --email test@test.com --username admin -v 3
+	cd src; python3 manage.py createsuperuser --email test@test.com --phone 88008888888 --first_name Ad --last_name Min -v 3
 
 superuser-empty:
 	cd src; python3 manage.py createsuperuser
