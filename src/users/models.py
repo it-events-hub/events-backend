@@ -24,9 +24,24 @@ PHONE_NUMBER_ERROR = (
 )
 PHONE_NUMBER_REGEX = r"^(\+7|7|8)\d{10}$"
 TELEGRAM_ID_ERROR = (
-    "Допустимы латинские буквы, цифры и нижнее подчеркивание, длина - 5-32 символа."
+    "Значение должно начинаться с символа @, затем идет username длиной 5-32 символа, "
+    "в котором допускаются только латинские буквы, цифры и нижнее подчеркивание."
 )
-TELEGRAM_ID_REGEX = r"^[a-zA-Z0-9_]{5,32}$"
+TELEGRAM_ID_REGEX = r"^@[a-zA-Z0-9_]{5,32}$"
+
+
+class Specialization(models.Model):
+    """Model for IT directions."""
+
+    name = models.CharField("Название", max_length=40, unique=True)
+    slug = models.SlugField("Слаг", max_length=40, unique=True)
+
+    class Meta:
+        verbose_name = "Направление"
+        verbose_name_plural = "Направления"
+
+    def __str__(self) -> str:
+        return self.name
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -42,8 +57,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         (ACTIVITY_SEEK, "в поиске работы"),
     ]
 
-    first_name = models.CharField("Имя", max_length=50)
-    last_name = models.CharField("Фамилия", max_length=50)
+    first_name = models.CharField("Имя", max_length=40)
+    last_name = models.CharField("Фамилия", max_length=40)
     email = models.EmailField("Электронная почта", unique=True, max_length=100)
     phone = models.CharField(
         "Телефон",
@@ -51,12 +66,12 @@ class User(AbstractBaseUser, PermissionsMixin):
         validators=[
             RegexValidator(regex=PHONE_NUMBER_REGEX, message=PHONE_NUMBER_ERROR)
         ],
-        max_length=17,
+        max_length=20,
     )
     telegram = models.CharField(
         "Телеграм ID",
         unique=True,
-        max_length=32,
+        max_length=33,
         validators=[
             RegexValidator(regex=TELEGRAM_ID_REGEX, message=TELEGRAM_ID_ERROR),
         ],
@@ -64,11 +79,11 @@ class User(AbstractBaseUser, PermissionsMixin):
         null=True,
     )
     birth_date = models.DateField("Дата рождения", blank=True, null=True)
-    city = models.CharField("Город", max_length=100, blank=True, null=True)
+    city = models.CharField("Город", max_length=40, blank=True, null=True)
     activity = models.CharField(
         "Род занятий", max_length=20, choices=ACTIVITY_CHOISES, default=ACTIVITY_WORK
     )
-    company = models.CharField("Место работы", max_length=100, blank=True, null=True)
+    company = models.CharField("Место работы", max_length=50, blank=True, null=True)
     position = models.CharField("Должность", max_length=100, blank=True, null=True)
     experience_years = models.PositiveSmallIntegerField(
         "Опыт работы в годах",
@@ -79,6 +94,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField("Сотрудник", default=False)
     is_active = models.BooleanField("Активирован", default=False)
     date_joined = models.DateTimeField("Дата и время регистрации", default=timezone.now)
+    specializations = models.ManyToManyField(
+        Specialization, related_name="users", blank=True
+    )
 
     objects = MyUserManager()
 
@@ -104,5 +122,5 @@ class User(AbstractBaseUser, PermissionsMixin):
         ):
             raise ValidationError(BIRTH_DATE_TOO_OLD_ERROR_MESSAGE)
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.first_name} {self.last_name}".strip()

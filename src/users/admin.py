@@ -2,7 +2,16 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.translation import gettext_lazy as _
 
-from .models import User
+from .models import Specialization, User
+
+
+@admin.register(Specialization)
+class SpecializationAdmin(admin.ModelAdmin):
+    """Class to display IT directions in admin panel."""
+
+    list_display = ["pk", "name"]
+    list_display_links = ["name"]
+    search_fields = ["name"]
 
 
 @admin.register(User)
@@ -34,6 +43,7 @@ class CustomUserAdmin(UserAdmin):
         "is_active",
         "is_superuser",
         "is_staff",
+        "specializations",
         "activity",
         "experience_years",
         "date_joined",
@@ -56,6 +66,7 @@ class CustomUserAdmin(UserAdmin):
                     "company",
                     "position",
                     "experience_years",
+                    "specializations",
                 )
             },
         ),

@@ -28,8 +28,11 @@ dumpdb:
 loaddb:
 	cd src; python3 manage.py loaddata dump.json
 
-loaddb-no-contenttypes-adminlogentry-permissions:
-	cd src; python3 manage.py loaddata --exclude contenttypes --exclude admin.logentry --exclude auth.permission dump.json
+loaddb-no-contenttypes:
+	cd src; python3 manage.py loaddata --exclude contenttypes dump.json
+
+loaddb-no-contenttypes-permissions:
+	cd src; python3 manage.py loaddata --exclude contenttypes --exclude auth.permission dump.json
 
 collectstatic:
 	cd src; python3 manage.py collectstatic --no-input

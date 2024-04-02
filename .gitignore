@@ -161,3 +161,6 @@ cython_debug/
 
 # VSCode staff
 .vscode*
+
+# DB dumps
+dump.json
