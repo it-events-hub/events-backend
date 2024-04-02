@@ -9,9 +9,9 @@ from .models import Specialization, User
 class SpecializationAdmin(admin.ModelAdmin):
     """Class to display IT directions in admin panel."""
 
-    list_display = ["pk", "name"]
+    list_display = ["pk", "name", "slug"]
     list_display_links = ["name"]
-    search_fields = ["name"]
+    search_fields = ["name", "slug"]
 
 
 @admin.register(User)
