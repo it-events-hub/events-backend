@@ -1,0 +1,59 @@
+name: it-events-backend workflow
+
+on:
+  push:
+    branches:
+
+jobs:
+
+  flake8_and_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Send start message
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          message: |
+            ${{ github.workflow }} started!
+
+            Repository: ${{ github.repository }}.
+            Branch name: ${{ github.ref_name }}.
+            Commit author: ${{ github.actor }}.
+            Commit message: ${{ github.event.commits[0].message }}.
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.6.1
+          virtualenvs-create: false
+
+      - name: Install dependencies
+        run: |
+          poetry install --no-interaction --no-root
+
+      - name: Test with flake8
+        run: |
+          python -m flake8
+
+      - name: Send success message
+        # if: ${{ github.ref != 'refs/heads/main' }}
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          message: |
+            ${{ github.workflow }} completed successfully!
+
+            Repository: ${{ github.repository }}.
+            Branch name: ${{ github.ref_name }}.
+            Commit author: ${{ github.actor }}.
+            Commit message: ${{ github.event.commits[0].message }}.
+            See changes: https://github.com/${{ github.repository }}/commit/${{github.sha}}
