@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     # Project's own apps
     "users.apps.UsersConfig",
     "events.apps.EventsConfig",
+    "applications.apps.ApplicationsConfig",
     # Third parties apps
     "debug_toolbar",
 ]
