@@ -3,6 +3,21 @@ from django.contrib import admin
 from .models import Event, EventPart, EventType, Speaker
 
 
+# TODO: создает дубли sql-запросов на странице отдельного ивента, если добавить
+# поле speaker в exclude, то дубликатов становится поменьше, но совсем они не исчезают,
+# погуглить django admin inline duplicated queries
+class EventPartsInline(admin.TabularInline):
+    """Inline class to display event parts on event details page in Admin panel."""
+
+    model = EventPart
+    exclude = ["created"]
+    extra = 0
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.prefetch_related("speaker")
+
+
 @admin.register(EventType)
 class EventTypeAdmin(admin.ModelAdmin):
     """Class to display types of events in admin panel."""
@@ -51,6 +66,7 @@ class EventAdmin(admin.ModelAdmin):
         "cost",
     ]
     ordering = ["pk"]
+    inlines = [EventPartsInline]  # TODO: если отключить, дублей sql-запросов не будет
 
 
 @admin.register(EventPart)
@@ -70,3 +86,7 @@ class EventPartAdmin(admin.ModelAdmin):
     search_fields = ["name", "event__name", "speaker__name"]
     list_filter = ["is_deleted", "start_time", "presentation_type"]
     ordering = ["pk"]
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.select_related("event", "speaker")
