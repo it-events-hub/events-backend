@@ -7,27 +7,27 @@ from django.utils import timezone
 
 from .managers import MyUserManager
 
-MAX_EXPERIENCE_YEARS = 100
-MIN_USER_AGE = 16
-MAX_USER_AGE = 110
-BIRTH_DATE_TOO_YOUNG_ERROR_MESSAGE = (
+MAX_EXPERIENCE_YEARS: int = 100
+MIN_USER_AGE: int = 16
+MAX_USER_AGE: int = 110
+BIRTH_DATE_TOO_YOUNG_ERROR_MESSAGE: str = (
     "Указана неверная дата рождения, "
     f"пользователю должно быть не менее {MIN_USER_AGE} лет."
 )
-BIRTH_DATE_TOO_OLD_ERROR_MESSAGE = (
+BIRTH_DATE_TOO_OLD_ERROR_MESSAGE: str = (
     "Указана неверная дата рождения, "
     f"пользователю должно быть не более {MAX_USER_AGE} лет."
 )
-PHONE_NUMBER_ERROR = (
+PHONE_NUMBER_ERROR: str = (
     "Введен некорректный номер телефона. Введите номер телефона в "
     "форматах '+7XXXXXXXXXX', '7XXXXXXXXXX' или '8XXXXXXXXXX'."
 )
-PHONE_NUMBER_REGEX = r"^(\+7|7|8)\d{10}$"
-TELEGRAM_ID_ERROR = (
+PHONE_NUMBER_REGEX: str = r"^(\+7|7|8)\d{10}$"
+TELEGRAM_ID_ERROR: str = (
     "Значение должно начинаться с символа @, затем идет username длиной 5-32 символа, "
     "в котором допускаются только латинские буквы, цифры и нижнее подчеркивание."
 )
-TELEGRAM_ID_REGEX = r"^@[a-zA-Z0-9_]{5,32}$"
+TELEGRAM_ID_REGEX: str = r"^@[a-zA-Z0-9_]{5,32}$"
 
 
 class Specialization(models.Model):

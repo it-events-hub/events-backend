@@ -1,10 +1,17 @@
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
 
 from users.models import Specialization
 
-DEFAULT_EVENT_ORGANIZATOR = "Яндекс"
+DEFAULT_EVENT_ORGANIZATOR: str = "Яндекс"
+EVENT_ENDTIME_ERROR: str = (
+    "Мероприятие не может окончиться раньше даты времени его начала."
+)
+EVENT_PART_STARTTIME_ERROR: str = (
+    "Часть мероприятия не может начинаться раньше самого мероприятия."
+)
 
 
 class EventType(models.Model):
@@ -70,8 +77,8 @@ class Event(models.Model):
         "Формат", max_length=7, choices=FORMAT_CHOISES, default=FORMAT_OFFLINE
     )
     created = models.DateTimeField("Создано", default=timezone.now)
-    start_time = models.DateField("Время начала")
-    end_time = models.DateField("Время окончания", blank=True, null=True)
+    start_time = models.DateTimeField("Время начала")
+    end_time = models.DateTimeField("Время окончания", blank=True, null=True)
     cost = models.FloatField("Стоимость", default=0, validators=[MinValueValidator(0)])
     place = models.TextField("Место", blank=True)
     event_type = models.ForeignKey(
@@ -104,6 +111,11 @@ class Event(models.Model):
         verbose_name = "Мероприятие"
         verbose_name_plural = "Мероприятия"
 
+    def clean(self):
+        """Checks that start_time is not later than end_time."""
+        if self.start_time and self.end_time and self.start_time > self.end_time:
+            raise ValidationError(EVENT_ENDTIME_ERROR)
+
     def __str__(self) -> str:
         return self.name
 
@@ -134,6 +146,12 @@ class EventPart(models.Model):
     class Meta:
         verbose_name = "Часть мероприятия"
         verbose_name_plural = "Части мероприятий"
+
+    def clean_fields(self, exclude=None):
+        """Checks that start_time is not earlier than the event start time."""
+        super().clean_fields(exclude=exclude)
+        if self.start_time and self.start_time < self.event.start_time:
+            raise ValidationError(EVENT_PART_STARTTIME_ERROR)
 
     def __str__(self) -> str:
         return f"{self.name} {self.event} {self.start_time}"
