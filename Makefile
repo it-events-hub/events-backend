@@ -14,7 +14,7 @@ migrate:
 	cd src; python3 manage.py migrate
 
 superuser:
-	cd src; python3 manage.py createsuperuser --email test@test.com --username admin -v 3
+	cd src; python3 manage.py createsuperuser --email test@test.com --phone 88008888888 --first_name Ad --last_name Min -v 3
 
 superuser-empty:
 	cd src; python3 manage.py createsuperuser
@@ -28,8 +28,11 @@ dumpdb:
 loaddb:
 	cd src; python3 manage.py loaddata dump.json
 
-loaddb-no-contenttypes-adminlogentry-permissions:
-	cd src; python3 manage.py loaddata --exclude contenttypes --exclude admin.logentry --exclude auth.permission dump.json
+loaddb-no-contenttypes:
+	cd src; python3 manage.py loaddata --exclude contenttypes dump.json
+
+loaddb-no-contenttypes-permissions:
+	cd src; python3 manage.py loaddata --exclude contenttypes --exclude auth.permission dump.json
 
 collectstatic:
 	cd src; python3 manage.py collectstatic --no-input

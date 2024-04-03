@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     # Project's own apps
+    "users.apps.UsersConfig",
     # Third parties apps
     "debug_toolbar",
 ]
@@ -112,6 +113,9 @@ else:
         }
     }
 
+
+# User settings
+AUTH_USER_MODEL = "users.User"
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
