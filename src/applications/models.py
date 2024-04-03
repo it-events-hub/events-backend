@@ -19,6 +19,14 @@ from users.models import (
     User,
 )
 
+NOTIFICATION_SETTINGS_ERROR: str = (
+    "Нужно указать либо конкретного пользователя, либо конкретную заявку."
+)
+NOTIFICATION_SETTINGS_APPLICATION_OF_USER_ERROR: str = (
+    "Если заявка принадлежит зарегистрированному пользователю, настройки уведомлений "
+    "должны быть привязаны к этому пользователю, а не к его отдельным заявкам."
+)
+
 
 class Source(models.Model):
     """Model for sources of information about events."""
@@ -34,6 +42,7 @@ class Source(models.Model):
         return self.name
 
 
+# TODO: autofill fields if the application belongs to a registered user
 class Application(models.Model):
     """Model for storing applications for participation in events."""
 
@@ -137,7 +146,6 @@ class Application(models.Model):
         return f"{self.event.name} {self.email}"
 
 
-# TODO: check that user or application is NULL, not both
 class NotificationSettings(models.Model):
     """Model for storing event notification settings."""
 
@@ -183,6 +191,18 @@ class NotificationSettings(models.Model):
     class Meta:
         verbose_name = "Настройки уведомлений"
         verbose_name_plural = "Настройки уведомлений"
+
+    # TODO: может это можно вынести в constraints?
+    def clean(self):
+        """
+        Checks that either the user field or the application field is set to NULL,
+        but not both at the same time.
+        Checks that notification settings are linked to applications without users.
+        """
+        if self.user and self.application or not self.user and not self.application:
+            raise ValidationError(NOTIFICATION_SETTINGS_ERROR)
+        if self.application and self.application.user:
+            raise ValidationError(NOTIFICATION_SETTINGS_APPLICATION_OF_USER_ERROR)
 
     def __str__(self) -> str:
         if self.user:
