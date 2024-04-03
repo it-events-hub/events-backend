@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # Project's own apps
     "users.apps.UsersConfig",
+    "events.apps.EventsConfig",
     # Third parties apps
     "debug_toolbar",
 ]
