@@ -35,7 +35,7 @@ class Source(models.Model):
 
 
 class Application(models.Model):
-    """Model for storing applications for participation in an event."""
+    """Model for storing applications for participation in events."""
 
     STATUS_SUBMITTED: str = "submitted"
     STATUS_REVIEWED: str = "reviewed"
