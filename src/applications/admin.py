@@ -45,6 +45,7 @@ class NotificationSettingsAdmin(admin.ModelAdmin):
         "telegram_notifications",
         "phone_call_notifications",
     ]
+    list_display_links = ["user", "application"]
     list_filter = [
         "email_notifications",
         "sms_notifications",

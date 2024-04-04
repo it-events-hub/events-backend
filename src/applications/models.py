@@ -2,6 +2,7 @@ from dateutil.relativedelta import relativedelta
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, RegexValidator
 from django.db import models
+from django.db.models import CheckConstraint, Q, UniqueConstraint
 from django.utils import timezone
 
 from events.models import Event
@@ -19,9 +20,6 @@ from users.models import (
     User,
 )
 
-NOTIFICATION_SETTINGS_ERROR: str = (
-    "Нужно указать либо конкретного пользователя, либо конкретную заявку."
-)
 NOTIFICATION_SETTINGS_APPLICATION_OF_USER_ERROR: str = (
     "Если заявка принадлежит зарегистрированному пользователю, настройки уведомлений "
     "должны быть привязаны к этому пользователю, а не к его отдельным заявкам."
@@ -42,7 +40,13 @@ class Source(models.Model):
         return self.name
 
 
-# TODO: autofill fields if the application belongs to a registered user
+# TODO: сейчас в заявке автоматически заполняются поля зарегистрированного юзера,
+# кроме его специализаций, т.к. там связь многие-ко-многим, и они почему-то
+# не сохраняются в БД, даже если создавать их в методе save.
+# Поэтому нужно автозаполнять специализации на уровне апи.
+# При внесении изменений в данные профиля нужно будет обновлять их и во всех
+# заявках данного пользователя (заявки на мероприятия, где is_event_started=False),
+# это тоже будет на уровне апи.
 class Application(models.Model):
     """Model for storing applications for participation in events."""
 
@@ -67,6 +71,7 @@ class Application(models.Model):
         on_delete=models.CASCADE,
         verbose_name="Мероприятие",
     )
+    is_event_started = models.BooleanField("Мероприятие началось", default=False)
     source = models.ForeignKey(
         Source,
         related_name="applications",
@@ -82,15 +87,19 @@ class Application(models.Model):
         blank=True,
         null=True,
     )
-    first_name = models.CharField("Имя", max_length=40)
-    last_name = models.CharField("Фамилия", max_length=40)
-    email = models.EmailField("Электронная почта", max_length=100)
+    first_name = models.CharField("Имя", max_length=40, blank=True, null=True)
+    last_name = models.CharField("Фамилия", max_length=40, blank=True, null=True)
+    email = models.EmailField(
+        "Электронная почта", max_length=100, blank=True, null=True
+    )
     phone = models.CharField(
         "Телефон",
         validators=[
             RegexValidator(regex=PHONE_NUMBER_REGEX, message=PHONE_NUMBER_ERROR)
         ],
         max_length=20,
+        blank=True,
+        null=True,
     )
     telegram = models.CharField(
         "Телеграм ID",
@@ -124,6 +133,13 @@ class Application(models.Model):
     class Meta:
         verbose_name = "Заявка"
         verbose_name_plural = "Заявки"
+        constraints = [
+            UniqueConstraint(fields=["event", "email"], name="unique_event_email"),
+            UniqueConstraint(fields=["event", "phone"], name="unique_event_phone"),
+            UniqueConstraint(
+                fields=["event", "telegram"], name="unique_event_telegram"
+            ),
+        ]
 
     def clean_fields(self, exclude=None):
         """Checks the user's birth date."""
@@ -139,6 +155,28 @@ class Application(models.Model):
             and self.birth_date + relativedelta(years=MAX_USER_AGE) < now.date()
         ):
             raise ValidationError(BIRTH_DATE_TOO_OLD_ERROR_MESSAGE)
+
+    def autofill_fields(self):
+        """
+        Fills in the fields of an application of a registered user,
+        except for the user's specializations.
+        """
+        self.first_name = self.user.first_name
+        self.last_name = self.user.last_name
+        self.email = self.user.email
+        self.phone = self.user.phone
+        self.telegram = self.user.telegram
+        self.birth_date = self.user.birth_date
+        self.city = self.user.city
+        self.activity = self.user.activity
+        self.company = self.user.company
+        self.position = self.user.position
+        self.experience_years = self.user.experience_years
+
+    def clean(self):
+        """Calls autofill_fields if user field."""
+        if self.user:
+            self.autofill_fields()
 
     def __str__(self) -> str:
         if self.user:
@@ -191,16 +229,21 @@ class NotificationSettings(models.Model):
     class Meta:
         verbose_name = "Настройки уведомлений"
         verbose_name_plural = "Настройки уведомлений"
+        constraints = [
+            CheckConstraint(
+                check=Q(user__isnull=False) | Q(application__isnull=False),
+                name="check_user_or_application_fields_are_filled",
+            ),
+            CheckConstraint(
+                check=~(Q(user__isnull=False) & Q(application__isnull=False)),
+                name="check_user_or_application_fields_are_filled_but_not_both",
+            ),
+        ]
 
-    # TODO: может это можно вынести в constraints?
     def clean(self):
         """
-        Checks that either the user field or the application field is set to NULL,
-        but not both at the same time.
         Checks that notification settings are linked to applications without users.
         """
-        if self.user and self.application or not self.user and not self.application:
-            raise ValidationError(NOTIFICATION_SETTINGS_ERROR)
         if self.application and self.application.user:
             raise ValidationError(NOTIFICATION_SETTINGS_APPLICATION_OF_USER_ERROR)
 
