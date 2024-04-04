@@ -109,6 +109,21 @@ argon2 = ["argon2-cffi (>=19.1.0)"]
 bcrypt = ["bcrypt"]
 
 [[package]]
+name = "django-cors-headers"
+version = "4.3.1"
+description = "django-cors-headers is a Django application for handling the server headers required for Cross-Origin Resource Sharing (CORS)."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "django-cors-headers-4.3.1.tar.gz", hash = "sha256:0bf65ef45e606aff1994d35503e6b677c0b26cafff6506f8fd7187f3be840207"},
+    {file = "django_cors_headers-4.3.1-py3-none-any.whl", hash = "sha256:0b1fd19297e37417fc9f835d39e45c8c642938ddba1acce0c1753d3edef04f36"},
+]
+
+[package.dependencies]
+asgiref = ">=3.6"
+Django = ">=3.2"
+
+[[package]]
 name = "django-debug-toolbar"
 version = "4.3.0"
 description = "A configurable set of panels that display various debug information about the current request/response."
@@ -122,6 +137,42 @@ files = [
 [package.dependencies]
 django = ">=3.2.4"
 sqlparse = ">=0.2"
+
+[[package]]
+name = "djangorestframework"
+version = "3.15.1"
+description = "Web APIs for Django, made easy."
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "djangorestframework-3.15.1-py3-none-any.whl", hash = "sha256:3ccc0475bce968608cf30d07fb17d8e52d1d7fc8bfe779c905463200750cbca6"},
+    {file = "djangorestframework-3.15.1.tar.gz", hash = "sha256:f88fad74183dfc7144b2756d0d2ac716ea5b4c7c9840995ac3bfd8ec034333c1"},
+]
+
+[package.dependencies]
+django = ">=3.0"
+
+[[package]]
+name = "drf-standardized-errors"
+version = "0.13.0"
+description = "Standardize your API error responses."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "drf_standardized_errors-0.13.0-py3-none-any.whl", hash = "sha256:ee6513f1e289f02a62ed447fee2608dab12b5687817c9bcb429587658d4ad3aa"},
+    {file = "drf_standardized_errors-0.13.0.tar.gz", hash = "sha256:f18b2b7f40c9f04f9023bb5f74fb451462cb50d1484ea2ebb94f3774d14993bf"},
+]
+
+[package.dependencies]
+django = ">=3.2"
+djangorestframework = ">=3.12"
+
+[package.extras]
+dev = ["pre-commit"]
+doc = ["myst-parser", "sphinx (!=5.2.0.post0)", "sphinx-autobuild", "sphinx-rtd-theme (>=1.1.0)"]
+openapi = ["drf-spectacular", "inflection"]
+release = ["flit", "keyring", "tbump"]
+test = ["tox", "tox-gh-actions"]
 
 [[package]]
 name = "flake8"
@@ -482,4 +533,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "487342bc30ec34330aada12d3fa7a5b08064bf62a92741b3af1cf1cf22237a7c"
+content-hash = "0cd7a6ad70614904569713fc8246be6335b568f6f8c52814a7a8957843abdf05"
