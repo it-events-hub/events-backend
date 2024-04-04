@@ -20,6 +20,16 @@ from users.models import (
     User,
 )
 
+APPLICATION_ANONYMOUS_REQUIRED_FIELDS_ERROR: str = (
+    "Если заявка подается от имени анонимного пользователя, в ней должны быть указаны "
+    "имя, фамилия, емейл, телефон, дата рождения, город и род деятельности."
+)
+APPLICATION_AUTHORIZED_REQUIRED_FIELDS_ERROR: str = (
+    "Если заявка подается от имени зарегистрированного пользователя, в его Личном "
+    "кабинете либо в самой заявке должны быть указаны дата рождения и город. Указанные "
+    "в заявке дата рождения и город будут автоматически сохранены для данного "
+    "пользователя."
+)
 NOTIFICATION_SETTINGS_APPLICATION_OF_USER_ERROR: str = (
     "Если заявка принадлежит зарегистрированному пользователю, настройки уведомлений "
     "должны быть привязаны к этому пользователю, а не к его отдельным заявкам."
@@ -47,6 +57,11 @@ class Source(models.Model):
 # При внесении изменений в данные профиля нужно будет обновлять их и во всех
 # заявках данного пользователя (заявки на мероприятия, где is_event_started=False),
 # это тоже будет на уровне апи.
+# Поля first_name, last_name, email, phone, birth_date, city должны быть на уровне апи
+# обязательными для неавторизованного посетителя при подаче заявки, а для
+# авторизованного они автоматически заполняются из его профиля, если там они заполнены,
+# но если в его профиле не указаны дата рождения и город и он укажет их в заявке, то эти
+# дата рождения и город сохранятся для этого пользователя в целом (в модели User)
 class Application(models.Model):
     """Model for storing applications for participation in events."""
 
@@ -139,6 +154,21 @@ class Application(models.Model):
             UniqueConstraint(
                 fields=["event", "telegram"], name="unique_event_telegram"
             ),
+            CheckConstraint(
+                check=Q(user__isnull=False)
+                | (
+                    Q(user__isnull=True)
+                    & ~Q(first_name__isnull=True)
+                    & ~Q(last_name__isnull=True)
+                    & ~Q(email__isnull=True)
+                    & ~Q(phone__isnull=True)
+                    & ~Q(birth_date__isnull=True)
+                    & ~Q(city__isnull=True)
+                    & ~Q(activity__isnull=True)
+                ),
+                name="check_user_or_details_filled",
+                violation_error_message=APPLICATION_ANONYMOUS_REQUIRED_FIELDS_ERROR,
+            ),
         ]
 
     def clean_fields(self, exclude=None):
@@ -174,7 +204,20 @@ class Application(models.Model):
         self.experience_years = self.user.experience_years
 
     def clean(self):
-        """Calls autofill_fields if user field."""
+        """
+        Checks and triggers automatic filling of application fields if it is submitted
+        by an authenticated user. Saves user's birth_date and city if they were NULL.
+        """
+        if (
+            self.user
+            and not (self.user.birth_date and self.user.city)
+            and not (self.birth_date and self.city)
+        ):
+            raise ValidationError(APPLICATION_AUTHORIZED_REQUIRED_FIELDS_ERROR)
+        if self.user and not (self.user.birth_date and self.user.city):
+            self.user.birth_date = self.user.birth_date or self.birth_date
+            self.user.city = self.user.city or self.city
+            self.user.save()
         if self.user:
             self.autofill_fields()
 
