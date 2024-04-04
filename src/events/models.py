@@ -50,10 +50,12 @@ class Event(models.Model):
 
     FORMAT_OFFLINE: str = "offline"
     FORMAT_ONLINE: str = "online"
+    FORMAT_HYBRID: str = "hybrid"
 
     FORMAT_CHOISES: list[tuple[str]] = [
-        (FORMAT_OFFLINE, "онлайн"),
-        (FORMAT_ONLINE, "офлайн"),
+        (FORMAT_OFFLINE, "офлайн"),
+        (FORMAT_ONLINE, "онлайн"),
+        (FORMAT_HYBRID, "офлайн и онлайн"),
     ]
 
     STATUS_OPEN: str = "registration is open"
@@ -74,7 +76,7 @@ class Event(models.Model):
         "Статус", max_length=22, choices=STATUS_CHOISES, default=STATUS_OPEN
     )
     format = models.CharField(
-        "Формат", max_length=7, choices=FORMAT_CHOISES, default=FORMAT_OFFLINE
+        "Формат", max_length=7, choices=FORMAT_CHOISES, default=FORMAT_HYBRID
     )
     created = models.DateTimeField("Создано", default=timezone.now)
     start_time = models.DateTimeField("Время начала")
@@ -93,7 +95,12 @@ class Event(models.Model):
         on_delete=models.SET_DEFAULT,
         default="deleted specialization",
     )
-    participant_limit = models.PositiveIntegerField("Количество участников", default=0)
+    participant_offline_limit = models.PositiveIntegerField(
+        "Количество офлайн участников", blank=True, null=True
+    )
+    participant_online_limit = models.PositiveIntegerField(
+        "Количество онлайн участников", blank=True, null=True
+    )
     registration_deadline = models.DateTimeField(
         "Регистрация до", blank=True, null=True
     )

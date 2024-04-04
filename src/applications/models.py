@@ -30,6 +30,9 @@ APPLICATION_AUTHORIZED_REQUIRED_FIELDS_ERROR: str = (
     "в заявке дата рождения и город будут автоматически сохранены для данного "
     "пользователя."
 )
+APPLICATION_FORMAT_ERROR: str = (
+    "Формат участия в заявке не соответствует формату проведения мероприятия."
+)
 NOTIFICATION_SETTINGS_APPLICATION_OF_USER_ERROR: str = (
     "Если заявка принадлежит зарегистрированному пользователю, настройки уведомлений "
     "должны быть привязаны к этому пользователю, а не к его отдельным заявкам."
@@ -54,14 +57,11 @@ class Source(models.Model):
 # кроме его специализаций, т.к. там связь многие-ко-многим, и они почему-то
 # не сохраняются в БД, даже если создавать их в методе save.
 # Поэтому нужно автозаполнять специализации на уровне апи.
-# При внесении изменений в данные профиля нужно будет обновлять их и во всех
+# TODO: При внесении изменений в данные профиля нужно будет обновлять их и во всех
 # заявках данного пользователя (заявки на мероприятия, где is_event_started=False),
 # это тоже будет на уровне апи.
-# Поля first_name, last_name, email, phone, birth_date, city должны быть на уровне апи
-# обязательными для неавторизованного посетителя при подаче заявки, а для
-# авторизованного они автоматически заполняются из его профиля, если там они заполнены,
-# но если в его профиле не указаны дата рождения и город и он укажет их в заявке, то эти
-# дата рождения и город сохранятся для этого пользователя в целом (в модели User)
+# TODO: поле source пришлось сделать необязательным на уровне модели,
+# надо сделать его обязательным на уровне апи
 class Application(models.Model):
     """Model for storing applications for participation in events."""
 
@@ -70,15 +70,20 @@ class Application(models.Model):
     STATUS_APPROVED: str = "approved"
     STATUS_REJECTED: str = "rejected"
 
-    FORMAT_CHOISES: list[tuple[str]] = [
+    STATUS_CHOISES: list[tuple[str]] = [
         (STATUS_SUBMITTED, "подана"),
         (STATUS_REVIEWED, "рассмотрена"),
         (STATUS_APPROVED, "одобрена"),
         (STATUS_REJECTED, "отклонена"),
     ]
 
+    FORMAT_CHOISES: list[tuple[str]] = [
+        (Event.FORMAT_ONLINE, "онлайн"),
+        (Event.FORMAT_OFFLINE, "офлайн"),
+    ]
+
     status = models.CharField(
-        "Статус", max_length=9, choices=FORMAT_CHOISES, default=STATUS_SUBMITTED
+        "Статус", max_length=9, choices=STATUS_CHOISES, default=STATUS_SUBMITTED
     )
     event = models.ForeignKey(
         Event,
@@ -86,13 +91,20 @@ class Application(models.Model):
         on_delete=models.CASCADE,
         verbose_name="Мероприятие",
     )
+    format = models.CharField(
+        "Формат участия",
+        max_length=7,
+        choices=FORMAT_CHOISES,
+        default=Event.FORMAT_ONLINE,
+    )
     is_event_started = models.BooleanField("Мероприятие началось", default=False)
     source = models.ForeignKey(
         Source,
         related_name="applications",
-        on_delete=models.SET_DEFAULT,
-        default="deleted source",
+        on_delete=models.SET_NULL,
         verbose_name="Источник информации",
+        blank=True,
+        null=True,
     )
     user = models.ForeignKey(
         User,
@@ -220,6 +232,11 @@ class Application(models.Model):
             self.user.save()
         if self.user:
             self.autofill_fields()
+        if (
+            self.event.format != Event.FORMAT_HYBRID
+            and self.event.format != self.format
+        ):
+            raise ValidationError(APPLICATION_FORMAT_ERROR)
 
     def __str__(self) -> str:
         if self.user:
