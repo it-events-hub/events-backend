@@ -12,6 +12,7 @@ class SpecializationAdmin(admin.ModelAdmin):
     list_display = ["pk", "name", "slug"]
     list_display_links = ["name"]
     search_fields = ["name", "slug"]
+    ordering = ["pk"]
 
 
 @admin.register(User)

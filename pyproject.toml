@@ -11,6 +11,7 @@ django = "^5.0.3"
 python-dotenv = "^1.0.1"
 django-debug-toolbar = "^4.3.0"
 python-dateutil = "^2.9.0.post0"
+pillow = "^10.3.0"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -19,6 +20,7 @@ pep8-naming = "^0.13.3"
 flake8-broken-line = "^1.0.0"
 flake8-return = "^1.2.0"
 flake8-isort = "^6.1.1"
+black = "^24.3.0"
 
 [build-system]
 requires = ["poetry-core"]
