@@ -109,8 +109,8 @@ class ApplicationCreateAnonymousSerializer(ApplicationCreateAuthorizedSerializer
     )
 
 
-class NotificationSettingsCreateSerializer(serializers.ModelSerializer):
-    """Serializer to create NotificationSettings for an application without user."""
+class NotificationSettingsSerializer(serializers.ModelSerializer):
+    """Serializer for NotificationSettings."""
 
     class Meta:
         model = NotificationSettings

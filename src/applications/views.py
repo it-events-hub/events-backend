@@ -4,8 +4,8 @@ from .models import Application
 from .serializers import (
     ApplicationCreateAnonymousSerializer,
     ApplicationCreateAuthorizedSerializer,
-    NotificationSettingsCreateSerializer,
 )
+from .utils import create_notification_settings
 
 
 class ApplicationCreateAPIView(CreateAPIView):
@@ -22,14 +22,13 @@ class ApplicationCreateAPIView(CreateAPIView):
     # сохраняются, только через админку (там работает метод clean)
     # TODO: сделать тут автозаполнение данных заявки
     def perform_create(self, serializer):
-        """Adds user to the application if the user is authenticated."""
+        """
+        Adds user to the application if request user is authenticated.
+        Triggers notification settings instance creation if request user is anonymous.
+        """
         if self.request.user.is_authenticated:
             serializer.save(user=self.request.user)
         else:
-            serializer.save()  # момент создания instance
+            serializer.save()
             created_application_id = serializer.instance.id
-            notification_settings_serializer = NotificationSettingsCreateSerializer(
-                data={"application": created_application_id}
-            )
-            if notification_settings_serializer.is_valid():
-                notification_settings_serializer.save()
+            create_notification_settings(application_pk=created_application_id)

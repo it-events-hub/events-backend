@@ -9,6 +9,7 @@ from applications.views import ApplicationCreateAPIView
 app_name = "api"
 
 router = DefaultRouter()
+# TODO: добавить в эндпойнт списка ивентов спикера (спикер первого доклада)
 
 urlpatterns = [
     path("", include(router.urls)),
