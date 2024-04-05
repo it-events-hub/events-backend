@@ -215,11 +215,34 @@ class Application(models.Model):
         self.position = self.user.position
         self.experience_years = self.user.experience_years
 
+    # TODO: род деятельности (activity) кажется тоже не обязательный, хотя у зареганного
+    # он всегда будет указан из-за дефолтного значения. В этой модели тоже стоит по
+    # дефолту работаю, и если анонимный посетитель его не укажет совсем, то он будет
+    # как бы работать (и возможно это дефолтное значение нужно убрать из этой модели).
+    # А у зареганного оно подтянется из ЛК.
+    # TODO: если после подачи заявки пользователь изменит свои данные в ЛК, то в заявке
+    # будут по-прежнему его старые данные (которые были на момент ее подачи), т.е. при
+    # изменении данных пользователя нам надо прописать их обновление во всех заявках
+    # на будущие мероприятия
     def clean(self):
         """
         Checks and triggers automatic filling of application fields if it is submitted
         by an authenticated user. Saves user's birth_date and city if they were NULL.
+        Updates user data, if it was changed in the application.
         """
+        user_data: list[str] = {
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "email": self.email,
+            "phone": self.phone,
+            "telegram": self.telegram,
+            "birth_date": self.birth_date,
+            "city": self.city,
+            "activity": self.activity,
+            "company": self.company,
+            "position": self.position,
+            "experience_years": self.experience_years,
+        }
         if (
             self.user
             and not (self.user.birth_date and self.user.city)
@@ -229,9 +252,13 @@ class Application(models.Model):
         if self.user and not (self.user.birth_date and self.user.city):
             self.user.birth_date = self.user.birth_date or self.birth_date
             self.user.city = self.user.city or self.city
-            self.user.save()
-        if self.user:
-            self.autofill_fields()
+            self.user.save()  # обновляем city и/или birth_date у пользователя
+        if self.user and any(user_data):
+            for key, value in user_data.items():
+                if value:
+                    setattr(self.user, key, value)
+            self.user.save()  # обновляем информацию пользователя
+            self.autofill_fields()  # автоматически заполняем поля заявки
         if (
             self.event.format != Event.FORMAT_HYBRID
             and self.event.format != self.format
