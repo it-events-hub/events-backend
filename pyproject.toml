@@ -15,6 +15,7 @@ pillow = "^10.3.0"
 djangorestframework = "^3.15.1"
 drf-standardized-errors = "^0.13.0"
 django-cors-headers = "^4.3.1"
+drf-yasg = "^1.21.7"
 
 
 [tool.poetry.group.dev.dependencies]

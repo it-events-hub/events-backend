@@ -57,11 +57,13 @@ INSTALLED_APPS = [
     "users.apps.UsersConfig",
     "events.apps.EventsConfig",
     "applications.apps.ApplicationsConfig",
+    "api.apps.ApiConfig",
     # Third parties apps
     "debug_toolbar",
     "rest_framework",
     "drf_standardized_errors",
     "corsheaders",
+    "drf_yasg",
 ]
 
 MIDDLEWARE = [
@@ -174,6 +176,14 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "drf_standardized_errors.handler.exception_handler",
+}
+
+# DRF-yasg Swagger settings (JWT-tokens)
+
+SWAGGER_SETTINGS = {
+    "SECURITY_DEFINITIONS": {
+        "Bearer": {"type": "apiKey", "name": "Authorization", "in": "header"}
+    }
 }
 
 # CORS settings for frontend development
