@@ -21,17 +21,19 @@ from users.models import (
 )
 
 APPLICATION_ANONYMOUS_REQUIRED_FIELDS_ERROR: str = (
-    "Если заявка подается от имени анонимного пользователя, в ней должны быть указаны "
-    "имя, фамилия, емейл, телефон, дата рождения, город и род деятельности."
-)
-APPLICATION_AUTHORIZED_REQUIRED_FIELDS_ERROR: str = (
-    "Если заявка подается от имени зарегистрированного пользователя, в его Личном "
-    "кабинете либо в самой заявке должны быть указаны дата рождения и город. Указанные "
-    "в заявке дата рождения и город будут автоматически сохранены для данного "
-    "пользователя."
+    "Если заявка подается от имени анонимного посетителя, в ней должны быть указаны "
+    "имя, фамилия, емейл, телефон и род деятельности."
 )
 APPLICATION_FORMAT_ERROR: str = (
     "Формат участия в заявке не соответствует формату проведения мероприятия."
+)
+APPLICATION_EMAIL_ERROR: str = (
+    "Этот адрес электронной почты принадлежит другому пользователю."
+)
+APPLICATION_PHONE_ERROR: str = "Этот номер телефона принадлежит другому пользователю."
+APPLICATION_TELEGRAM_ERROR: str = "Этот Telegram ID принадлежит другому пользователю."
+APPLICATION_EVENT_TELEGRAM_UNIQUE_ERROR: str = (
+    "Заявка на данное мероприятие от пользователя с таким Telegram ID уже существует."
 )
 NOTIFICATION_SETTINGS_APPLICATION_OF_USER_ERROR: str = (
     "Если заявка принадлежит зарегистрированному пользователю, настройки уведомлений "
@@ -54,14 +56,14 @@ class Source(models.Model):
 
 
 # TODO: сейчас в заявке автоматически заполняются поля зарегистрированного юзера,
-# кроме его специализаций, т.к. там связь многие-ко-многим, и они почему-то
-# не сохраняются в БД, даже если создавать их в методе save.
-# Поэтому нужно автозаполнять специализации на уровне апи.
+# кроме его specializations, там связь многие-ко-многим, и обновления почему-то
+# не сохраняются в БД, даже если создавать их в методе save. Поэтому нужно автозаполнять
+# и обновлять specializations на уровне апи.
 # TODO: При внесении изменений в данные профиля нужно будет обновлять их и во всех
 # заявках данного пользователя (заявки на мероприятия, где is_event_started=False),
-# это тоже будет на уровне апи.
-# TODO: поле source пришлось сделать необязательным на уровне модели,
-# надо сделать его обязательным на уровне апи
+# это тоже будет на уровне апи, включая изменения specializations.
+# TODO: activity обязательный, хотя у зареганного юзера он всегда будет указан из-за
+# дефолтного значения.
 class Application(models.Model):
     """Model for storing applications for participation in events."""
 
@@ -140,10 +142,7 @@ class Application(models.Model):
     birth_date = models.DateField("Дата рождения", blank=True, null=True)
     city = models.CharField("Город", max_length=40, blank=True, null=True)
     activity = models.CharField(
-        "Род занятий",
-        max_length=20,
-        choices=User.ACTIVITY_CHOISES,
-        default=User.ACTIVITY_WORK,
+        "Род занятий", max_length=20, choices=User.ACTIVITY_CHOISES
     )
     company = models.CharField("Место работы", max_length=50, blank=True, null=True)
     position = models.CharField("Должность", max_length=100, blank=True, null=True)
@@ -160,12 +159,12 @@ class Application(models.Model):
     class Meta:
         verbose_name = "Заявка"
         verbose_name_plural = "Заявки"
+        # если необязательное поле фигурирует в UniqueConstraint, DRF будет считать его
+        # обязательным и отвечать validation_error required 400, если это поле не
+        # передано при POST-запросе (убедилась на собственном опыте)
         constraints = [
             UniqueConstraint(fields=["event", "email"], name="unique_event_email"),
             UniqueConstraint(fields=["event", "phone"], name="unique_event_phone"),
-            UniqueConstraint(
-                fields=["event", "telegram"], name="unique_event_telegram"
-            ),
             CheckConstraint(
                 check=Q(user__isnull=False)
                 | (
@@ -174,8 +173,6 @@ class Application(models.Model):
                     & ~Q(last_name__isnull=True)
                     & ~Q(email__isnull=True)
                     & ~Q(phone__isnull=True)
-                    & ~Q(birth_date__isnull=True)
-                    & ~Q(city__isnull=True)
                     & ~Q(activity__isnull=True)
                 ),
                 name="check_user_or_details_filled",
@@ -183,9 +180,8 @@ class Application(models.Model):
             ),
         ]
 
-    def clean_fields(self, exclude=None):
+    def check_birth_date(self):
         """Checks the user's birth date."""
-        super().clean_fields(exclude=exclude)
         now = timezone.now()
         if (
             self.birth_date
@@ -197,6 +193,61 @@ class Application(models.Model):
             and self.birth_date + relativedelta(years=MAX_USER_AGE) < now.date()
         ):
             raise ValidationError(BIRTH_DATE_TOO_OLD_ERROR_MESSAGE)
+
+    def check_format(self):
+        """Checks the application format and the event format match each other."""
+        if (
+            self.event.format != Event.FORMAT_HYBRID
+            and self.event.format != self.format
+        ):
+            raise ValidationError(APPLICATION_FORMAT_ERROR)
+
+    def check_email(self):
+        """Checks that the email does not belong to another user."""
+        if (
+            self.user
+            and User.objects.exclude(pk=self.user.pk).filter(email=self.email).exists()
+        ):
+            raise ValidationError(APPLICATION_EMAIL_ERROR)
+        if not self.user and User.objects.filter(email=self.email).exists():
+            raise ValidationError(APPLICATION_EMAIL_ERROR)
+
+    def check_phone(self):
+        """Checks that the phone does not belong to another user."""
+        if (
+            self.user
+            and User.objects.exclude(pk=self.user.pk).filter(phone=self.phone).exists()
+        ):
+            raise ValidationError(APPLICATION_PHONE_ERROR)
+        if not self.user and User.objects.filter(phone=self.phone).exists():
+            raise ValidationError(APPLICATION_PHONE_ERROR)
+
+    def check_telegram(self):
+        """
+        Checks that the telegram does not belong to another user.
+        Checks that there is no application with the same event and telegram.
+        """
+        if (
+            self.user
+            and self.telegram
+            and User.objects.exclude(pk=self.user.pk)
+            .filter(telegram=self.telegram)
+            .exists()
+        ):
+            raise ValidationError(APPLICATION_TELEGRAM_ERROR)
+        if (
+            not self.user
+            and self.telegram
+            and User.objects.filter(telegram=self.telegram).exists()
+        ):
+            raise ValidationError(APPLICATION_TELEGRAM_ERROR)
+        if (
+            self.telegram
+            and Application.objects.exclude(pk=self.pk)
+            .filter(event=self.event, telegram=self.telegram)
+            .exists()
+        ):
+            raise ValidationError(APPLICATION_EVENT_TELEGRAM_UNIQUE_ERROR)
 
     def autofill_fields(self):
         """
@@ -215,19 +266,10 @@ class Application(models.Model):
         self.position = self.user.position
         self.experience_years = self.user.experience_years
 
-    # TODO: род деятельности (activity) кажется тоже не обязательный, хотя у зареганного
-    # он всегда будет указан из-за дефолтного значения. В этой модели тоже стоит по
-    # дефолту работаю, и если анонимный посетитель его не укажет совсем, то он будет
-    # как бы работать (и возможно это дефолтное значение нужно убрать из этой модели).
-    # А у зареганного оно подтянется из ЛК.
-    # TODO: если после подачи заявки пользователь изменит свои данные в ЛК, то в заявке
-    # будут по-прежнему его старые данные (которые были на момент ее подачи), т.е. при
-    # изменении данных пользователя нам надо прописать их обновление во всех заявках
-    # на будущие мероприятия
     def clean(self):
         """
         Checks and triggers automatic filling of application fields if it is submitted
-        by an authenticated user. Saves user's birth_date and city if they were NULL.
+        by an authenticated user.
         Updates user data, if it was changed in the application.
         """
         user_data: list[str] = {
@@ -243,27 +285,17 @@ class Application(models.Model):
             "position": self.position,
             "experience_years": self.experience_years,
         }
-        if (
-            self.user
-            and not (self.user.birth_date and self.user.city)
-            and not (self.birth_date and self.city)
-        ):
-            raise ValidationError(APPLICATION_AUTHORIZED_REQUIRED_FIELDS_ERROR)
-        if self.user and not (self.user.birth_date and self.user.city):
-            self.user.birth_date = self.user.birth_date or self.birth_date
-            self.user.city = self.user.city or self.city
-            self.user.save()  # обновляем city и/или birth_date у пользователя
+        self.check_birth_date()
+        self.check_format()
+        self.check_email()
+        self.check_phone()
+        self.check_telegram()
         if self.user and any(user_data):
             for key, value in user_data.items():
                 if value:
                     setattr(self.user, key, value)
-            self.user.save()  # обновляем информацию пользователя
+            self.user.save()  # обновляем информацию пользователя кроме specializations
             self.autofill_fields()  # автоматически заполняем поля заявки
-        if (
-            self.event.format != Event.FORMAT_HYBRID
-            and self.event.format != self.format
-        ):
-            raise ValidationError(APPLICATION_FORMAT_ERROR)
 
     def __str__(self) -> str:
         if self.user:
