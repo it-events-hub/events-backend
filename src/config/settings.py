@@ -54,8 +54,6 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # DRF
-    "rest_framework",
     # Project's own apps
     "users.apps.UsersConfig",
     "events.apps.EventsConfig",
@@ -63,6 +61,10 @@ INSTALLED_APPS = [
     "api.apps.ApiConfig",
     # Third parties apps
     "debug_toolbar",
+    "rest_framework",
+    "drf_standardized_errors",
+    "corsheaders",
+    "drf_yasg",
     "djoser",
 ]
 
@@ -171,12 +173,13 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# DRF
+# DRF Settings
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
+    "EXCEPTION_HANDLER": "drf_standardized_errors.handler.exception_handler",
 }
 
 SIMPLE_JWT = {
@@ -200,3 +203,24 @@ DJOSER = {
     },
     "HIDE_USERS": False,
 }
+
+# DRF-yasg Swagger settings (JWT-tokens)
+
+SWAGGER_SETTINGS = {
+    "SECURITY_DEFINITIONS": {
+        "Bearer": {"type": "apiKey", "name": "Authorization", "in": "header"}
+    }
+}
+
+# CORS settings for frontend development
+
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_URLS_REGEX = r"^/api/.*$"
+
+# Security & sessions settings
+
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
