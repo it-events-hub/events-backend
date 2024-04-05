@@ -159,9 +159,6 @@ class Application(models.Model):
     class Meta:
         verbose_name = "Заявка"
         verbose_name_plural = "Заявки"
-        # если необязательное поле фигурирует в UniqueConstraint, DRF будет считать его
-        # обязательным и отвечать validation_error required 400, если это поле не
-        # передано при POST-запросе (убедилась на собственном опыте)
         constraints = [
             UniqueConstraint(fields=["event", "email"], name="unique_event_email"),
             UniqueConstraint(fields=["event", "phone"], name="unique_event_phone"),
