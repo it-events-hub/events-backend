@@ -4,12 +4,15 @@ from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 from rest_framework.routers import DefaultRouter
 
+from applications.views import ApplicationCreateAPIView
+
 app_name = "api"
 
 router = DefaultRouter()
 
 urlpatterns = [
     path("", include(router.urls)),
+    path("applications/", ApplicationCreateAPIView.as_view()),
 ]
 
 # TODO: add email address and license type
