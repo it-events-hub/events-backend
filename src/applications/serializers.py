@@ -1,7 +1,13 @@
 from rest_framework import serializers
 
-from .models import Application
+from .models import Application, NotificationSettings
+from events.models import Event
 from users.models import Specialization, User
+
+APPLICATION_FORMAT_REQUIRED_ERROR: str = (
+    "Если мероприятие имеет гибридный формат, в заявке обязательно должен быть указан "
+    "желаемый формат участия."
+)
 
 # TODO: поля status (бд дефолт, потом в админке), is_event_started (бд дефолт, потом
 # celery beat), user (апи в perform_create определяет тип request.user, если он
@@ -43,10 +49,6 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
     """Serializer to create applications on behalf of authorized site visitors."""
 
     user = serializers.PrimaryKeyRelatedField(read_only=True)
-    format = serializers.ChoiceField(
-        choices=Application.FORMAT_CHOISES,
-        label=Application._meta.get_field("format").verbose_name,
-    )
     activity = serializers.ChoiceField(
         choices=User.ACTIVITY_CHOISES,
         label=Application._meta.get_field("activity").verbose_name,
@@ -75,6 +77,17 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
             "specializations",
         ]
 
+    def validate(self, attrs):
+        """
+        Checks that attrs include a format field if the event has a hybrid format.
+        Replaces the format with the correct one if the event has a strict format.
+        """
+        if attrs["event"].format == Event.FORMAT_HYBRID and not attrs.get("format"):
+            raise serializers.ValidationError(APPLICATION_FORMAT_REQUIRED_ERROR)
+        if attrs["event"].format != Event.FORMAT_HYBRID:
+            attrs["format"] = attrs["event"].format
+        return attrs
+
 
 class ApplicationCreateAnonymousSerializer(ApplicationCreateAuthorizedSerializer):
     """Serializer to create applications on behalf of anonymous site visitors."""
@@ -94,3 +107,19 @@ class ApplicationCreateAnonymousSerializer(ApplicationCreateAuthorizedSerializer
     specializations = serializers.PrimaryKeyRelatedField(
         queryset=Specialization.objects.all(), many=True
     )
+
+
+class NotificationSettingsCreateSerializer(serializers.ModelSerializer):
+    """Serializer to create NotificationSettings for an application without user."""
+
+    class Meta:
+        model = NotificationSettings
+        fields = [
+            "id",
+            "user",
+            "application",
+            "email_notifications",
+            "sms_notifications",
+            "telegram_notifications",
+            "phone_call_notifications",
+        ]

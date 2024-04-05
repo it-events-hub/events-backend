@@ -138,6 +138,7 @@ class EventPart(models.Model):
     )
     is_deleted = models.BooleanField("Деактивировано", default=False)
     name = models.CharField("Название", max_length=100)
+    description = models.TextField("Описание", blank=True, null=True)
     speaker = models.ForeignKey(
         Speaker,
         related_name="presentations",

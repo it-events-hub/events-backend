@@ -4,6 +4,7 @@ from .models import Application
 from .serializers import (
     ApplicationCreateAnonymousSerializer,
     ApplicationCreateAuthorizedSerializer,
+    NotificationSettingsCreateSerializer,
 )
 
 
@@ -24,4 +25,11 @@ class ApplicationCreateAPIView(CreateAPIView):
         """Adds user to the application if the user is authenticated."""
         if self.request.user.is_authenticated:
             serializer.save(user=self.request.user)
-        return super().perform_create(serializer)
+        else:
+            serializer.save()  # момент создания instance
+            created_application_id = serializer.instance.id
+            notification_settings_serializer = NotificationSettingsCreateSerializer(
+                data={"application": created_application_id}
+            )
+            if notification_settings_serializer.is_valid():
+                notification_settings_serializer.save()
