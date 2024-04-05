@@ -17,9 +17,11 @@ class ApplicationCreateAPIView(CreateAPIView):
             return ApplicationCreateAuthorizedSerializer
         return ApplicationCreateAnonymousSerializer
 
+    # TODO: сделать тут сохранение новых данных пользователя? сейчас они через апи не
+    # сохраняются, только через админку (там работает метод clean)
+    # TODO: сделать тут автозаполнение данных заявки
     def perform_create(self, serializer):
         """Adds user to the application if the user is authenticated."""
-        print(self.request.user)
         if self.request.user.is_authenticated:
             serializer.save(user=self.request.user)
         return super().perform_create(serializer)

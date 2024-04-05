@@ -2,7 +2,7 @@ from dateutil.relativedelta import relativedelta
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, RegexValidator
 from django.db import models
-from django.db.models import CheckConstraint, Q, UniqueConstraint
+from django.db.models import CheckConstraint, Q
 from django.utils import timezone
 
 from events.models import Event
@@ -32,6 +32,14 @@ APPLICATION_EMAIL_ERROR: str = (
 )
 APPLICATION_PHONE_ERROR: str = "Этот номер телефона принадлежит другому пользователю."
 APPLICATION_TELEGRAM_ERROR: str = "Этот Telegram ID принадлежит другому пользователю."
+APPLICATION_EVENT_EMAIL_UNIQUE_ERROR: str = (
+    "Заявка на данное мероприятие от пользователя с таким адресом электронной почты "
+    "уже существует."
+)
+APPLICATION_EVENT_PHONE_UNIQUE_ERROR: str = (
+    "Заявка на данное мероприятие от пользователя с таким номером телефона уже "
+    "существует."
+)
 APPLICATION_EVENT_TELEGRAM_UNIQUE_ERROR: str = (
     "Заявка на данное мероприятие от пользователя с таким Telegram ID уже существует."
 )
@@ -160,8 +168,6 @@ class Application(models.Model):
         verbose_name = "Заявка"
         verbose_name_plural = "Заявки"
         constraints = [
-            UniqueConstraint(fields=["event", "email"], name="unique_event_email"),
-            UniqueConstraint(fields=["event", "phone"], name="unique_event_phone"),
             CheckConstraint(
                 check=Q(user__isnull=False)
                 | (
@@ -208,6 +214,13 @@ class Application(models.Model):
             raise ValidationError(APPLICATION_EMAIL_ERROR)
         if not self.user and User.objects.filter(email=self.email).exists():
             raise ValidationError(APPLICATION_EMAIL_ERROR)
+        if (
+            self.email
+            and Application.objects.exclude(pk=self.pk)
+            .filter(event=self.event, email=self.email)
+            .exists()
+        ):
+            raise ValidationError(APPLICATION_EVENT_EMAIL_UNIQUE_ERROR)
 
     def check_phone(self):
         """Checks that the phone does not belong to another user."""
@@ -218,6 +231,13 @@ class Application(models.Model):
             raise ValidationError(APPLICATION_PHONE_ERROR)
         if not self.user and User.objects.filter(phone=self.phone).exists():
             raise ValidationError(APPLICATION_PHONE_ERROR)
+        if (
+            self.phone
+            and Application.objects.exclude(pk=self.pk)
+            .filter(event=self.event, phone=self.phone)
+            .exists()
+        ):
+            raise ValidationError(APPLICATION_EVENT_PHONE_UNIQUE_ERROR)
 
     def check_telegram(self):
         """
