@@ -19,11 +19,6 @@ APPLICATION_FORMAT_REQUIRED_ERROR: str = (
     "желаемый формат участия."
 )
 
-# TODO: поля status (бд дефолт, потом в админке), is_event_started (бд дефолт, потом
-# celery beat), user (апи в perform_create определяет тип request.user, если он
-# авторизован, то проставляет его, если неавторизован, то там должен быть NULL)
-# не заполняются самим посетителем сайта.
-
 # TODO: если мероприятие имеет строгий формат, то клиенту не нужно показывать чекбоксы
 # с желаемым форматом участия - довести это до фронтов и дизайнеров.
 
@@ -38,6 +33,11 @@ APPLICATION_FORMAT_REQUIRED_ERROR: str = (
 # А в activity у него сразу после регистрации будет значение по дефолту - работаю,
 # но он его может поменять в ЛК. Если у него activity=работаю, то просим при подаче
 # заявки указать место, должность и число лет опыта (валидация на уровне апи).
+
+# TODO: # если activity=working, то в заявке поля company, position, experience_years
+# становятся обязательными для анонима. Если у авторизованного activity=working, а в ЛК
+# и в самой заявке не указаны company, position, experience_years, то тоже просим его их
+# заполнить в заявке или в ЛК (не создаем ему заявку, пока он их не заполнит)
 
 
 class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
@@ -65,7 +65,7 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
             "telegram",
             "birth_date",
             "city",
-            "activity",  # если working, company, position, experience_years обязательны
+            "activity",
             "company",
             "position",
             "experience_years",

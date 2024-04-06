@@ -1,5 +1,7 @@
 from typing import Any
 
+from django.contrib.auth.models import AnonymousUser
+from django.utils.functional import SimpleLazyObject
 from rest_framework.generics import CreateAPIView
 
 from .models import Application
@@ -8,6 +10,7 @@ from .serializers import (
     ApplicationCreateAuthorizedSerializer,
 )
 from .utils_db_write import create_notification_settings
+from api.loggers import logger
 from users.models import Specialization
 
 
@@ -21,37 +24,53 @@ class ApplicationCreateAPIView(CreateAPIView):
             return ApplicationCreateAuthorizedSerializer
         return ApplicationCreateAnonymousSerializer
 
-    # TODO: сделать тут автозаполнение данных заявки
+    def update_authenticated_user_personal_data(
+        self, user: SimpleLazyObject, validated_data: list[Any]
+    ) -> None:
+        """
+        Updates personal data if authenticated user change this data in the application.
+        """
+        user_validated_data: list[Any] = {
+            "first_name": validated_data.get("first_name"),
+            "last_name": validated_data.get("last_name"),
+            "email": validated_data.get("email"),
+            "phone": validated_data.get("phone"),
+            "telegram": validated_data.get("telegram"),
+            "birth_date": validated_data.get("birth_date"),
+            "city": validated_data.get("city"),
+            "activity": validated_data.get("activity"),
+            "company": validated_data.get("company"),
+            "position": validated_data.get("position"),
+            "experience_years": validated_data.get("experience_years"),
+        }
+        specializations: list[Specialization] = validated_data.get("specializations")
+        if any(user_validated_data):
+            for key, value in user_validated_data.items():
+                if value:
+                    setattr(user, key, value)
+                    logger.debug(
+                        f"The {key} of {user} was updated, new value: {value}."
+                    )
+        if specializations:
+            user.specializations.set(specializations)
+            logger.debug(
+                f"The specializations of {user} were updated, new specializations: "
+                f"{specializations}."
+            )
+        user.save()
+
+    # TODO: сделать тут автозаполнение данных заявки для авторизованного юзера
     def perform_create(self, serializer):
         """
         Adds user to the application if request user is authenticated.
         Triggers notification settings instance creation if request user is anonymous.
         """
-        if self.request.user.is_authenticated:
-            user_validated_data: list[Any] = {
-                "first_name": serializer.validated_data.get("first_name"),
-                "last_name": serializer.validated_data.get("last_name"),
-                "email": serializer.validated_data.get("email"),
-                "phone": serializer.validated_data.get("phone"),
-                "telegram": serializer.validated_data.get("telegram"),
-                "birth_date": serializer.validated_data.get("birth_date"),
-                "city": serializer.validated_data.get("city"),
-                "activity": serializer.validated_data.get("activity"),
-                "company": serializer.validated_data.get("company"),
-                "position": serializer.validated_data.get("position"),
-                "experience_years": serializer.validated_data.get("experience_years"),
-            }
-            specializations: list[Specialization] = serializer.validated_data.get(
-                "specializations"
+        user: SimpleLazyObject | AnonymousUser = self.request.user
+        if user.is_authenticated:
+            self.update_authenticated_user_personal_data(
+                user, serializer.validated_data
             )
-            if any(user_validated_data):
-                for key, value in user_validated_data.items():
-                    if value:
-                        setattr(self.request.user, key, value)
-            if specializations:
-                self.request.user.specializations.set(specializations)
-            self.request.user.save()
-            serializer.save(user=self.request.user)
+            serializer.save(user=user)
         else:
             serializer.save()
             created_application_id = serializer.instance.id

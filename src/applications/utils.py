@@ -70,6 +70,6 @@ def check_another_user_telegram(
         and User.objects.exclude(pk=user.pk).filter(telegram=telegram).exists()
     ):
         return APPLICATION_TELEGRAM_ERROR
-    if not user and User.objects.filter(telegram=telegram).exists():
+    if not user and telegram and User.objects.filter(telegram=telegram).exists():
         return APPLICATION_TELEGRAM_ERROR
     return None
