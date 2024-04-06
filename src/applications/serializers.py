@@ -28,6 +28,15 @@ APPLICATION_FORMAT_REQUIRED_ERROR: str = (
 APPLICATION_SPECIALIZATIONS_REQUIRED_ERROR: str = (
     "Укажите направления в заявке или в своем Личном кабинете перед подачей заявки."
 )
+APPLICATION_EVENT_CLOSED_ERROR: str = "Регистрация на мероприятие закрыта."
+APPLICATION_EVENT_OFFLINE_CLOSED_ERROR: str = (
+    "Регистрация на мероприятие в офлайн-формате закрыта, но принимаются заявки "
+    "на участие в мероприятии в онлайн-формате."
+)
+APPLICATION_EVENT_ONLINE_CLOSED_ERROR: str = (
+    "Регистрация на мероприятие в онлайн-формате закрыта, но принимаются заявки "
+    "на участие в мероприятии в офлайн-формате."
+)
 
 
 # TODO: у ивента есть participant_offline_limit и participant_online_limit, если
@@ -81,10 +90,30 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
         return value
 
     @staticmethod
-    def check_format(attrs: dict[str, Any]) -> str | None:
+    def check_format_hybrid_required(attrs: dict[str, Any]) -> str | None:
         """Checks that attrs include a format field if the event has a hybrid format."""
         if attrs["event"].format == Event.FORMAT_HYBRID and not attrs.get("format"):
             return APPLICATION_FORMAT_REQUIRED_ERROR
+        return None
+
+    @staticmethod
+    def check_format_available(attrs: dict[str, Any]) -> str | None:
+        """
+        Checks that registration for the event is open for the format
+        specified in the application.
+        """
+        if attrs["event"].status != Event.STATUS_CLOSED:
+            return APPLICATION_EVENT_CLOSED_ERROR
+        if (
+            attrs["event"].status != Event.STATUS_OFFLINE_CLOSED
+            and attrs["format"] == Event.FORMAT_OFFLINE
+        ):
+            return APPLICATION_EVENT_OFFLINE_CLOSED_ERROR
+        if (
+            attrs["event"].status != Event.STATUS_ONLINE_CLOSED
+            and attrs["format"] == Event.FORMAT_ONLINE
+        ):
+            return APPLICATION_EVENT_ONLINE_CLOSED_ERROR
         return None
 
     @staticmethod
@@ -224,13 +253,18 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
             else None
         )
 
-        format_error: str | None = self.__class__.check_format(attrs)
-        if format_error:
-            raise serializers.ValidationError(format_error)
+        format_hybrid_required_error: str | None = (
+            self.__class__.check_format_hybrid_required(attrs)
+        )
+        if format_hybrid_required_error:
+            raise serializers.ValidationError(format_hybrid_required_error)
         if attrs["event"].format != Event.FORMAT_HYBRID:
             attrs["format"] = attrs["event"].format
-        # TODO: после автоподстановки формата проверить, не закрыта ли регистрация
-        # на ивент в целом или для данного формата участия
+        format_available_error: str | None = self.__class__.check_format_available(
+            attrs
+        )
+        if format_available_error:
+            raise serializers.ValidationError(format_available_error)
 
         email_error: str | None = self.__class__.check_email(attrs, user)
         if email_error:
