@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 import os
+from datetime import timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -64,6 +65,7 @@ INSTALLED_APPS = [
     "drf_standardized_errors",
     "corsheaders",
     "drf_yasg",
+    "djoser",
 ]
 
 MIDDLEWARE = [
@@ -175,7 +177,35 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # DRF Settings
 
 REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
     "EXCEPTION_HANDLER": "drf_standardized_errors.handler.exception_handler",
+}
+
+SIMPLE_JWT = {
+    "AUTH_HEADER_TYPES": ("JWT",),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=7),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "SLIDING_TOKEN_LIFETIME": timedelta(minutes=7),
+    "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
+}
+
+# Djoser
+
+DJOSER = {
+    "LOGIN_FIELD": "email",
+    "SERIALIZERS": {
+        "activation": "djoser.serializers.ActivationSerializer",
+        "user": "users.serializers.UserSerializer",
+        "current_user": "users.serializers.UserSerializer",
+    },
+    "PERMISSIONS": {
+        # TODO: Add permissions
+    },
+    "HIDE_USERS": False,
+    "SEND_ACTIVATION_EMAIL": True,
+    "ACTIVATION_URL": "#/users/activation/{uid}/{token}",
 }
 
 # DRF-yasg Swagger settings (JWT-tokens)
