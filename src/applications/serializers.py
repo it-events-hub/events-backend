@@ -1,6 +1,8 @@
+from django.utils.functional import SimpleLazyObject
 from rest_framework import serializers
 
 from .models import Application, NotificationSettings
+from .utils import check_another_user_email
 from events.models import Event
 from users.models import Specialization, User
 from users.utils import check_birth_date
@@ -85,19 +87,26 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(birth_date_error)
         return value
 
-    # TODO: как в models check_email, check_phone, check_telegram
-    # def validate_email(self, value):
-    #     """Validates email."""
-
     def validate(self, attrs):
         """
         Checks that attrs include a format field if the event has a hybrid format.
         Replaces the format with the correct one if the event has a strict format.
+        Triggers checking that the email does not belong to another user.
         """
         if attrs["event"].format == Event.FORMAT_HYBRID and not attrs.get("format"):
             raise serializers.ValidationError(APPLICATION_FORMAT_REQUIRED_ERROR)
         if attrs["event"].format != Event.FORMAT_HYBRID:
-            attrs["format"] = attrs["event"].format
+            attrs["format"] = attrs["event"].format  # подмена формата участия на верный
+        user: SimpleLazyObject | None = (
+            self.context["request"].user
+            if isinstance(self.context["request"].user, User)
+            else None
+        )
+        another_user_email_error: str | None = check_another_user_email(
+            user=user, email=attrs["email"]
+        )
+        if another_user_email_error:
+            raise serializers.ValidationError(another_user_email_error)
         return attrs
 
 

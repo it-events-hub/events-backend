@@ -1,3 +1,5 @@
+from django.utils.functional import SimpleLazyObject
+
 from users.models import User
 
 APPLICATION_ANONYMOUS_REQUIRED_FIELDS_ERROR: str = (
@@ -36,7 +38,9 @@ NOTIFICATION_SETTINGS_APPLICATION_OF_USER_ERROR: str = (
 )
 
 
-def check_another_user_email(user: User | None, email: str) -> str | None:
+def check_another_user_email(
+    user: User | SimpleLazyObject | None, email: str
+) -> str | None:
     """
     Checks that the email does not belong to another user.
     """
