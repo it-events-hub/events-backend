@@ -41,11 +41,31 @@ NOTIFICATION_SETTINGS_APPLICATION_OF_USER_ERROR: str = (
 def check_another_user_email(
     user: User | SimpleLazyObject | None, email: str
 ) -> str | None:
-    """
-    Checks that the email does not belong to another user.
-    """
+    """Checks that the email does not belong to another user."""
     if user and User.objects.exclude(pk=user.pk).filter(email=email).exists():
         return APPLICATION_EMAIL_ERROR
     if not user and User.objects.filter(email=email).exists():
         return APPLICATION_EMAIL_ERROR
+    return None
+
+
+def check_another_user_phone(
+    user: User | SimpleLazyObject | None, phone: str
+) -> str | None:
+    """Checks that the phone does not belong to another user."""
+    if user and User.objects.exclude(pk=user.pk).filter(phone=phone).exists():
+        return APPLICATION_PHONE_ERROR
+    if not user and User.objects.filter(phone=phone).exists():
+        return APPLICATION_PHONE_ERROR
+    return None
+
+
+def check_another_user_telegram(
+    user: User | SimpleLazyObject | None, telegram: str
+) -> str | None:
+    """Checks that the telegram does not belong to another user."""
+    if user and User.objects.exclude(pk=user.pk).filter(telegram=telegram).exists():
+        return APPLICATION_TELEGRAM_ERROR
+    if not user and User.objects.filter(telegram=telegram).exists():
+        return APPLICATION_TELEGRAM_ERROR
     return None

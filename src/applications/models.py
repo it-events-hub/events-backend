@@ -10,10 +10,10 @@ from .utils import (
     APPLICATION_EVENT_PHONE_UNIQUE_ERROR,
     APPLICATION_EVENT_TELEGRAM_UNIQUE_ERROR,
     APPLICATION_FORMAT_ERROR,
-    APPLICATION_PHONE_ERROR,
-    APPLICATION_TELEGRAM_ERROR,
     NOTIFICATION_SETTINGS_APPLICATION_OF_USER_ERROR,
     check_another_user_email,
+    check_another_user_phone,
+    check_another_user_telegram,
 )
 from events.models import Event
 from users.models import Specialization, User
@@ -196,13 +196,11 @@ class Application(models.Model):
         Checks that the phone does not belong to another user.
         Checks that there is no application with the same event and phone.
         """
-        if (
-            self.user
-            and User.objects.exclude(pk=self.user.pk).filter(phone=self.phone).exists()
-        ):
-            raise ValidationError(APPLICATION_PHONE_ERROR)
-        if not self.user and User.objects.filter(phone=self.phone).exists():
-            raise ValidationError(APPLICATION_PHONE_ERROR)
+        another_user_phone_error: str | None = check_another_user_phone(
+            user=self.user, phone=self.phone
+        )
+        if another_user_phone_error:
+            raise ValidationError(another_user_phone_error)
         if (
             self.phone
             and Application.objects.exclude(pk=self.pk)
@@ -216,20 +214,11 @@ class Application(models.Model):
         Checks that the telegram does not belong to another user.
         Checks that there is no application with the same event and telegram.
         """
-        if (
-            self.user
-            and self.telegram
-            and User.objects.exclude(pk=self.user.pk)
-            .filter(telegram=self.telegram)
-            .exists()
-        ):
-            raise ValidationError(APPLICATION_TELEGRAM_ERROR)
-        if (
-            not self.user
-            and self.telegram
-            and User.objects.filter(telegram=self.telegram).exists()
-        ):
-            raise ValidationError(APPLICATION_TELEGRAM_ERROR)
+        another_user_telegram_error: str | None = check_another_user_telegram(
+            user=self.user, telegram=self.telegram
+        )
+        if another_user_telegram_error:
+            raise ValidationError(another_user_telegram_error)
         if (
             self.telegram
             and Application.objects.exclude(pk=self.pk)

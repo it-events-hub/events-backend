@@ -2,7 +2,14 @@ from django.utils.functional import SimpleLazyObject
 from rest_framework import serializers
 
 from .models import Application, NotificationSettings
-from .utils import check_another_user_email
+from .utils import (
+    APPLICATION_EVENT_EMAIL_UNIQUE_ERROR,
+    APPLICATION_EVENT_PHONE_UNIQUE_ERROR,
+    APPLICATION_EVENT_TELEGRAM_UNIQUE_ERROR,
+    check_another_user_email,
+    check_another_user_phone,
+    check_another_user_telegram,
+)
 from events.models import Event
 from users.models import Specialization, User
 from users.utils import check_birth_date
@@ -91,22 +98,63 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
         """
         Checks that attrs include a format field if the event has a hybrid format.
         Replaces the format with the correct one if the event has a strict format.
-        Triggers checking that the email does not belong to another user.
+        Checks email, phone, telegram.
         """
+        # format check and replacement
         if attrs["event"].format == Event.FORMAT_HYBRID and not attrs.get("format"):
             raise serializers.ValidationError(APPLICATION_FORMAT_REQUIRED_ERROR)
         if attrs["event"].format != Event.FORMAT_HYBRID:
-            attrs["format"] = attrs["event"].format  # подмена формата участия на верный
+            attrs["format"] = attrs["event"].format
+
+        # git user for email, phone and telegram checks
         user: SimpleLazyObject | None = (
             self.context["request"].user
             if isinstance(self.context["request"].user, User)
             else None
         )
+
+        # email checks
         another_user_email_error: str | None = check_another_user_email(
-            user=user, email=attrs["email"]
+            user=user, email=attrs.get("email")
         )
         if another_user_email_error:
             raise serializers.ValidationError(another_user_email_error)
+        if (
+            attrs.get("email")
+            and Application.objects.filter(
+                event=attrs["event"], email=attrs["email"]
+            ).exists()
+        ):
+            raise serializers.ValidationError(APPLICATION_EVENT_EMAIL_UNIQUE_ERROR)
+
+        # phone checks
+        another_user_phone_error: str | None = check_another_user_phone(
+            user=user, phone=attrs.get("phone")
+        )
+        if another_user_phone_error:
+            raise serializers.ValidationError(another_user_phone_error)
+        if (
+            attrs.get("phone")
+            and Application.objects.filter(
+                event=attrs["event"], phone=attrs["phone"]
+            ).exists()
+        ):
+            raise serializers.ValidationError(APPLICATION_EVENT_PHONE_UNIQUE_ERROR)
+
+        # telegram checks
+        another_user_telegram_error: str | None = check_another_user_telegram(
+            user=user, telegram=attrs.get("telegram")
+        )
+        if another_user_telegram_error:
+            raise serializers.ValidationError(another_user_telegram_error)
+        if (
+            attrs.get("telegram")
+            and Application.objects.filter(
+                event=attrs["event"], telegram=attrs["telegram"]
+            ).exists()
+        ):
+            raise serializers.ValidationError(APPLICATION_EVENT_TELEGRAM_UNIQUE_ERROR)
+
         return attrs
 
 
