@@ -3,6 +3,7 @@ from rest_framework import serializers
 from .models import Application, NotificationSettings
 from events.models import Event
 from users.models import Specialization, User
+from users.utils import check_birth_date
 
 APPLICATION_FORMAT_REQUIRED_ERROR: str = (
     "Если мероприятие имеет гибридный формат, в заявке обязательно должен быть указан "
@@ -68,7 +69,7 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
             "email",
             "phone",
             "telegram",
-            "birth_date",  # нужна валидация на уровне апи, clean_fields не запускается
+            "birth_date",
             "city",
             "activity",  # если working, company, position, experience_years обязательны
             "company",
@@ -76,6 +77,17 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
             "experience_years",
             "specializations",
         ]
+
+    def validate_birth_date(self, value):
+        """Validates birth date."""
+        birth_date_error: str | None = check_birth_date(value)
+        if birth_date_error:
+            raise serializers.ValidationError(birth_date_error)
+        return value
+
+    # TODO: как в models check_email, check_phone, check_telegram
+    # def validate_email(self, value):
+    #     """Validates email."""
 
     def validate(self, attrs):
         """

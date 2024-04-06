@@ -1,23 +1,17 @@
-from dateutil.relativedelta import relativedelta
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, RegexValidator
 from django.db import models
 from django.db.models import CheckConstraint, Q
-from django.utils import timezone
 
 from events.models import Event
-from users.models import (
-    BIRTH_DATE_TOO_OLD_ERROR_MESSAGE,
-    BIRTH_DATE_TOO_YOUNG_ERROR_MESSAGE,
+from users.models import Specialization, User
+from users.utils import (
     MAX_EXPERIENCE_YEARS,
-    MAX_USER_AGE,
-    MIN_USER_AGE,
     PHONE_NUMBER_ERROR,
     PHONE_NUMBER_REGEX,
     TELEGRAM_ID_ERROR,
     TELEGRAM_ID_REGEX,
-    Specialization,
-    User,
+    check_birth_date,
 )
 
 APPLICATION_ANONYMOUS_REQUIRED_FIELDS_ERROR: str = (
@@ -183,20 +177,6 @@ class Application(models.Model):
             ),
         ]
 
-    def check_birth_date(self):
-        """Checks the user's birth date."""
-        now = timezone.now()
-        if (
-            self.birth_date
-            and self.birth_date + relativedelta(years=MIN_USER_AGE) > now.date()
-        ):
-            raise ValidationError(BIRTH_DATE_TOO_YOUNG_ERROR_MESSAGE)
-        if (
-            self.birth_date
-            and self.birth_date + relativedelta(years=MAX_USER_AGE) < now.date()
-        ):
-            raise ValidationError(BIRTH_DATE_TOO_OLD_ERROR_MESSAGE)
-
     def check_format(self):
         """Checks the application format and the event format match each other."""
         if (
@@ -206,7 +186,10 @@ class Application(models.Model):
             raise ValidationError(APPLICATION_FORMAT_ERROR)
 
     def check_email(self):
-        """Checks that the email does not belong to another user."""
+        """
+        Checks that the email does not belong to another user.
+        Checks that there is no application with the same event and email.
+        """
         if (
             self.user
             and User.objects.exclude(pk=self.user.pk).filter(email=self.email).exists()
@@ -223,7 +206,10 @@ class Application(models.Model):
             raise ValidationError(APPLICATION_EVENT_EMAIL_UNIQUE_ERROR)
 
     def check_phone(self):
-        """Checks that the phone does not belong to another user."""
+        """
+        Checks that the phone does not belong to another user.
+        Checks that there is no application with the same event and phone.
+        """
         if (
             self.user
             and User.objects.exclude(pk=self.user.pk).filter(phone=self.phone).exists()
@@ -302,7 +288,9 @@ class Application(models.Model):
             "position": self.position,
             "experience_years": self.experience_years,
         }
-        self.check_birth_date()
+        birth_date_error: str | None = check_birth_date(self.birth_date)
+        if birth_date_error:
+            raise ValidationError(birth_date_error)
         self.check_format()
         self.check_email()
         self.check_phone()
