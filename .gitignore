@@ -164,6 +164,3 @@ cython_debug/
 
 # DB dumps
 dump.json
-
-# Static folder
-static/
