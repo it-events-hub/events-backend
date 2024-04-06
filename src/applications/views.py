@@ -2,7 +2,8 @@ from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.utils.functional import SimpleLazyObject
-from rest_framework.generics import CreateAPIView
+from rest_framework.mixins import CreateModelMixin, DestroyModelMixin
+from rest_framework.viewsets import GenericViewSet
 
 from .models import Application
 from .serializers import (
@@ -14,12 +15,12 @@ from api.loggers import logger
 from users.models import Specialization
 
 
-# TODO: у авторизованного должен быть эндпойнт отмены заявки, это должно отражаться на
-# лимитах - при подаче заявок увеличивать лимиты у ивента, а если лимиты достигнуты,
-# то закрывать регистрацию. Если заявка отменена авторизованным юзером, то открывать
-# регистрацию снова.
-class ApplicationCreateAPIView(CreateAPIView):
-    """APIView to create applications for participation in events."""
+# TODO: при подаче заявок увеличивать лимиты у ивента, а если лимиты достигнуты,
+# то закрывать регистрацию. Если заявка отменена авторизованным юзером, то отнять 1
+# от лимита и открывать регистрацию снова.
+# TODO: разрешить удаление только авторизованному только его собственную заявку
+class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
+    """ViewSet to create and delete applications for participation in events."""
 
     queryset = Application.objects.all()
 

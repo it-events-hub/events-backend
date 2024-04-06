@@ -98,12 +98,19 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
         )
         if another_user_email_error:
             return another_user_email_error
-        if (
+        same_email_in_attrs: bool = bool(
             attrs.get("email")
             and Application.objects.filter(
-                event=attrs["event"], email=attrs["email"]
+                event=attrs["event"], email=attrs.get("email")
             ).exists()
-        ):
+        )
+        same_email_in_user_personal_data: bool = bool(
+            not attrs.get("email")
+            and Application.objects.filter(
+                event=attrs["event"], email=user.email
+            ).exists()
+        )
+        if same_email_in_attrs or same_email_in_user_personal_data:
             return APPLICATION_EVENT_EMAIL_UNIQUE_ERROR
         return None
 
@@ -118,12 +125,19 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
         )
         if another_user_phone_error:
             return another_user_phone_error
-        if (
+        same_phone_in_attrs: bool = bool(
             attrs.get("phone")
             and Application.objects.filter(
-                event=attrs["event"], phone=attrs["phone"]
+                event=attrs["event"], phone=attrs.get("phone")
             ).exists()
-        ):
+        )
+        same_phone_in_user_personal_data: bool = bool(
+            not attrs.get("phone")
+            and Application.objects.filter(
+                event=attrs["event"], phone=user.phone
+            ).exists()
+        )
+        if same_phone_in_attrs or same_phone_in_user_personal_data:
             return APPLICATION_EVENT_PHONE_UNIQUE_ERROR
         return None
 
@@ -140,12 +154,19 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
         )
         if another_user_telegram_error:
             return another_user_telegram_error
-        if (
+        same_telegram_in_attrs: bool = bool(
             attrs.get("telegram")
             and Application.objects.filter(
-                event=attrs["event"], telegram=attrs["telegram"]
+                event=attrs["event"], phone=attrs.get("telegram")
             ).exists()
-        ):
+        )
+        same_telegram_in_user_personal_data: bool = bool(
+            not attrs.get("telegram")
+            and Application.objects.filter(
+                event=attrs["event"], telegram=user.telegram
+            ).exists()
+        )
+        if same_telegram_in_attrs or same_telegram_in_user_personal_data:
             return APPLICATION_EVENT_TELEGRAM_UNIQUE_ERROR
         return None
 
