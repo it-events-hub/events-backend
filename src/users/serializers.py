@@ -78,7 +78,7 @@ class UserSerializer(serializers.ModelSerializer):
                 field.value,
             )
 
-        specializations: dict = validated_data.pop("specializations")
+        specializations: dict = validated_data.pop('specializations')
         User.specializations.through.filter(user=instance).delete()  # TODO: wtf?!
         specs = [
             User.specializations.through(

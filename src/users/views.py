@@ -4,51 +4,23 @@ from django.contrib.auth import logout, update_session_auth_hash
 from django.utils.timezone import now
 
 from rest_framework.response import Response
-from rest_framework.viewsets import (
-    ModelViewSet,
-    GenericViewSet,
-)
-from rest_framework.mixins import (
-    ListModelMixin,
-    RetrieveModelMixin,
-    UpdateModelMixin,
-    CreateModelMixin,
-)
+from rest_framework.viewsets import GenericViewSet
+from rest_framework.mixins import ListModelMixin, CreateModelMixin
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from djoser.serializers import UserCreateSerializer, ActivationSerializer
+from djoser.serializers import UserCreateSerializer
 from djoser import compat, signals
+from djoser.conf import settings
 
-from config import settings
 from .models import User
-from .serializers import PasswordSerializer, UserSerializer
-
-
-# ******************
-# Список эндпойнтов:
-# 1. POST /users/ -> DONE
-# 2. GET /users/me/ -> DONE
-# 3. PATCH /users/me/ -> DONE
-# 4. DELETE /users/me/ -> DONE
-# Под вопросом:
-# 5. GET /users/ -> DONE
-# 6. POST /users/activation/ -> DONE
-# 7. POST /users/resend_activation/ -> DONE
-# 8. POST /users/reset_password/ -> DONE
-# 9. POST /users/reset_password_confirm/ -> DONE
-# 10. POST /users/set_password/ -> DONE
-# JWT:
-# 11. /auth/jwt/create/
-# 12. /auth/jwt/refresh/
-# 13. /auth/jwt/verify/
-# **********************
+from .serializers import UserSerializer
 
 
 class UserModelViewSet(
     GenericViewSet,
     ListModelMixin,
     CreateModelMixin,
-):  # TODO: change to explicit mixins
+):
     queryset = User.objects.all()
 
     def get_permissions(self):
@@ -92,7 +64,12 @@ class UserModelViewSet(
 
 class ActivationViewSet(GenericViewSet):
     queryset = User.objects.all()
-    serializer_class = ActivationSerializer
+
+    def get_serializer_class(self):
+        if self.action == "activation":
+            return settings.SERIALIZERS.activation
+        elif self.action == "resend_activation":
+            return settings.SERIALIZERS.password_reset
 
     @action(["post"], detail=False)
     def activation(self, request, *args, **kwargs):
@@ -134,10 +111,6 @@ class PasswordViewSet(GenericViewSet):
     queryset = User.objects.all()
 
     def get_serializer_class(self):
-        # elif self.action == "activation":
-        #     return settings.SERIALIZERS.activation
-        # elif self.action == "resend_activation":
-        #     return settings.SERIALIZERS.password_reset
         if self.action == "reset_password":
             return settings.SERIALIZERS.password_reset
         elif self.action == "reset_password_confirm":

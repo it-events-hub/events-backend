@@ -13,8 +13,6 @@ from users.views import (
     PasswordViewSet,
 )
 
-from applications.views import ApplicationCreateAPIView
-
 app_name = "api"
 
 router = DefaultRouter()
@@ -24,7 +22,7 @@ router.register("users", PasswordViewSet, "password")
 
 urlpatterns = [
     path("", include(router.urls)),
-    path("applications/", ApplicationCreateAPIView.as_view()),
+    path("auth/", include("djoser.urls.jwt")),
 ]
 
 # TODO: add email address and license type
@@ -38,7 +36,7 @@ schema_view = get_schema_view(
         license=openapi.License(name="<add license>"),
     ),
     public=True,
-    permission_classes=[permissions.AllowAny],
+    permission_classes=(permissions.AllowAny,),
 )
 
 urlpatterns += [
