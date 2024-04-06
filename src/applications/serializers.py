@@ -99,13 +99,13 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
         if another_user_email_error:
             return another_user_email_error
         same_email_in_attrs: bool = bool(
-            attrs.get("email")
+            attrs.get("email") is not None
             and Application.objects.filter(
                 event=attrs["event"], email=attrs.get("email")
             ).exists()
         )
         same_email_in_user_personal_data: bool = bool(
-            not attrs.get("email")
+            attrs.get("email") is None
             and Application.objects.filter(
                 event=attrs["event"], email=user.email
             ).exists()
@@ -126,13 +126,13 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
         if another_user_phone_error:
             return another_user_phone_error
         same_phone_in_attrs: bool = bool(
-            attrs.get("phone")
+            attrs.get("phone") is not None
             and Application.objects.filter(
                 event=attrs["event"], phone=attrs.get("phone")
             ).exists()
         )
         same_phone_in_user_personal_data: bool = bool(
-            not attrs.get("phone")
+            attrs.get("phone") is None
             and Application.objects.filter(
                 event=attrs["event"], phone=user.phone
             ).exists()
@@ -155,13 +155,14 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
         if another_user_telegram_error:
             return another_user_telegram_error
         same_telegram_in_attrs: bool = bool(
-            attrs.get("telegram")
+            attrs.get("telegram") is not None
             and Application.objects.filter(
                 event=attrs["event"], phone=attrs.get("telegram")
             ).exists()
         )
         same_telegram_in_user_personal_data: bool = bool(
-            not attrs.get("telegram")
+            user
+            and attrs.get("telegram") is None
             and Application.objects.filter(
                 event=attrs["event"], telegram=user.telegram
             ).exists()
@@ -189,7 +190,7 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
             (user.activity == work and attrs.get("activity") not in [study, seek])
             or (user.activity != work and attrs.get("activity") == work)
         )
-        authorized_no_work_details: bool = (
+        authorized_no_work_details: bool = user and (
             not (user.company or attrs.get("company"))
             or not (user.position or attrs.get("position"))
             or not (user.experience_years or attrs.get("experience_years"))

@@ -12,17 +12,18 @@ from .serializers import (
 )
 from .utils_db_write import create_notification_settings
 from api.loggers import logger
+from api.permissions import IsAuthorOrCreateOnly
 from users.models import Specialization
 
 
 # TODO: при подаче заявок увеличивать лимиты у ивента, а если лимиты достигнуты,
 # то закрывать регистрацию. Если заявка отменена авторизованным юзером, то отнять 1
 # от лимита и открывать регистрацию снова.
-# TODO: разрешить удаление только авторизованному только его собственную заявку
 class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
     """ViewSet to create and delete applications for participation in events."""
 
     queryset = Application.objects.all()
+    permission_classes = [IsAuthorOrCreateOnly]
 
     def get_serializer_class(self):
         if self.request.user.is_authenticated:
