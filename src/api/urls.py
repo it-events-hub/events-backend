@@ -4,7 +4,7 @@ from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 from rest_framework.routers import DefaultRouter
 
-from applications.views import ApplicationViewSet
+from applications.views import ApplicationViewSet, NotificationSettingsAPIView
 from users.views import ActivationViewSet, PasswordViewSet, UserModelViewSet
 
 # from rest_framework_simplejwt import views
@@ -24,6 +24,7 @@ router.register("applications", ApplicationViewSet)
 urlpatterns = [
     path("", include(router.urls)),
     path("auth/", include("djoser.urls.jwt")),
+    path("notification_settings/<int:pk>/", NotificationSettingsAPIView.as_view()),
 ]
 
 # TODO: add email address and license type

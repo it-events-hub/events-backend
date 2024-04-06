@@ -2,13 +2,15 @@ from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.utils.functional import SimpleLazyObject
+from rest_framework.generics import UpdateAPIView
 from rest_framework.mixins import CreateModelMixin, DestroyModelMixin
 from rest_framework.viewsets import GenericViewSet
 
-from .models import Application
+from .models import Application, NotificationSettings
 from .serializers import (
     ApplicationCreateAnonymousSerializer,
     ApplicationCreateAuthorizedSerializer,
+    NotificationSettingsSerializer,
 )
 from .utils_db_write import create_notification_settings
 from api.loggers import logger
@@ -19,7 +21,7 @@ from users.models import Specialization
 
 # TODO: Если заявка отменена авторизованным юзером, то открывать регистрацию снова.
 # TODO: добавить в сериализаторы Event отображение количества поданных заявок
-# (онлайн и офлайн)
+# (онлайн и офлайн), в Админку тоже можно добавить, хотя бы для event detail
 class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
     """ViewSet to create and delete applications for participation in events."""
 
@@ -165,4 +167,9 @@ class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
         )
 
 
-# TODO: make endpoint to patch NotificationSettings
+class NotificationSettingsAPIView(UpdateAPIView):
+    """APIView to edit NotificationSettings by PATCH-requests."""
+
+    queryset = NotificationSettings.objects.all()
+    serializer_class = NotificationSettingsSerializer
+    http_method_names = ["patch"]

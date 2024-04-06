@@ -39,17 +39,6 @@ APPLICATION_EVENT_ONLINE_CLOSED_ERROR: str = (
 )
 
 
-# TODO: у ивента есть participant_offline_limit и participant_online_limit, если
-# достигнут один из этих лимитов (и ивент гибридного формата), как нам закрывать
-# регистрацию для одного формата, но оставить ее для второго формата, лимит по которому
-# не достигнут?
-# Как вариант, добавить ивентам еще два статуса (регистрация онлайн закрыта, регистрация
-# офлайн закрыта).
-# Еще вариант: при создании заявки (если регистрация еще открыта) проверять оба лимита,
-# если по нужному нам формату участия лимит достигнут, то не создавать заявку и кидать
-# ошибку (например, 'Офлайн места закончились, зарегистрируйтесь онлайн', и наоборот),
-# а если при проверке выяснится, что оба лимита достигнуты, то автоматически менять
-# статус ивента на 'регистрация закрыта'
 class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
     """Serializer to create applications on behalf of authorized site visitors."""
 
@@ -313,6 +302,14 @@ class ApplicationCreateAnonymousSerializer(ApplicationCreateAuthorizedSerializer
 
 class NotificationSettingsSerializer(serializers.ModelSerializer):
     """Serializer for NotificationSettings."""
+
+    user = serializers.PrimaryKeyRelatedField(
+        read_only=True, label=NotificationSettings._meta.get_field("user").verbose_name
+    )
+    application = serializers.PrimaryKeyRelatedField(
+        read_only=True,
+        label=NotificationSettings._meta.get_field("application").verbose_name,
+    )
 
     class Meta:
         model = NotificationSettings
