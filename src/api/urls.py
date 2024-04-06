@@ -13,6 +13,8 @@ from users.views import (
     PasswordViewSet,
 )
 
+from applications.views import ApplicationCreateAPIView
+
 app_name = "api"
 
 router = DefaultRouter()
@@ -22,6 +24,7 @@ router.register("users", PasswordViewSet, "password")
 
 urlpatterns = [
     path("", include(router.urls)),
+    path("applications/", ApplicationCreateAPIView.as_view()),
 ]
 
 # TODO: add email address and license type
