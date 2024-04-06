@@ -64,7 +64,6 @@ class ApplicationCreateAPIView(CreateAPIView):
             )
         user.save()
 
-    # TODO: сделать тут автозаполнение данных заявки для авторизованного юзера
     def perform_create(self, serializer):
         """
         Adds user to the application if request user is authenticated.
@@ -75,7 +74,21 @@ class ApplicationCreateAPIView(CreateAPIView):
             self.__class__.update_authenticated_user_personal_data(
                 user, serializer.validated_data
             )
-            serializer.save(user=user)
+            serializer.save(
+                user=user,
+                first_name=user.first_name,
+                last_name=user.last_name,
+                email=user.email,
+                phone=user.phone,
+                telegram=user.telegram,
+                birth_date=user.birth_date,
+                city=user.city,
+                activity=user.activity,
+                company=user.company,
+                position=user.position,
+                experience_years=user.experience_years,
+                specializations=user.specializations.all(),
+            )
         else:
             serializer.save()
             created_application_id = serializer.instance.id
