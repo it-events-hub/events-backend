@@ -18,6 +18,9 @@ APPLICATION_FORMAT_REQUIRED_ERROR: str = (
     "Если мероприятие имеет гибридный формат, в заявке обязательно должен быть указан "
     "желаемый формат участия."
 )
+APPLICATION_SPECIALIZATIONS_REQUIRED_ERROR: str = (
+    "Укажите направления в заявке или в своем Личном кабинете перед подачей заявки."
+)
 
 # TODO: у ивента есть participant_offline_limit и participant_online_limit, если
 # достигнут один из этих лимитов (и ивент гибридного формата), как нам закрывать
@@ -30,12 +33,6 @@ APPLICATION_FORMAT_REQUIRED_ERROR: str = (
 # ошибку (например, 'Офлайн места закончились, зарегистрируйтесь онлайн', и наоборот),
 # а если при проверке выяснится, что оба лимита достигнуты, то автоматически менять
 # статус ивента на 'регистрация закрыта'
-
-# TODO: У авторизованного нужно проверять, что заполнено specializations в ЛК
-# либо кидать ошибку валидации (просить заполнить в ЛК или указать в заявке).
-# А в activity у него сразу после регистрации будет значение по дефолту - работаю,
-# но он его может поменять в ЛК. Если у него activity=работаю, то просим при подаче
-# заявки указать место, должность и число лет опыта (валидация на уровне апи).
 
 # TODO: # если activity=working, то в заявке поля company, position, experience_years
 # становятся обязательными для анонима. Если у авторизованного activity=working, а в ЛК
@@ -95,7 +92,7 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
         if attrs["event"].format != Event.FORMAT_HYBRID:
             attrs["format"] = attrs["event"].format
 
-        # git user for email, phone and telegram checks
+        # get user for email, phone and telegram checks
         user: SimpleLazyObject | None = (
             self.context["request"].user
             if isinstance(self.context["request"].user, User)
@@ -143,6 +140,12 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
             ).exists()
         ):
             raise serializers.ValidationError(APPLICATION_EVENT_TELEGRAM_UNIQUE_ERROR)
+
+        # specializations check
+        if user and not user.specializations.all():
+            raise serializers.ValidationError(
+                APPLICATION_SPECIALIZATIONS_REQUIRED_ERROR
+            )
 
         return attrs
 
