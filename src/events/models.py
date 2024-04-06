@@ -54,10 +54,14 @@ class Event(models.Model):
     ]
 
     STATUS_OPEN: str = "registration is open"
+    STATUS_OFFLINE_CLOSED: str = "registration offline is closed"
+    STATUS_ONLINE_CLOSED: str = "registration online is closed"
     STATUS_CLOSED: str = "registration is closed"
 
     STATUS_CHOISES: list[tuple[str]] = [
         (STATUS_OPEN, "регистрация открыта"),
+        (STATUS_OFFLINE_CLOSED, "регистрация офлайн закрыта"),
+        (STATUS_ONLINE_CLOSED, "регистрация онлайн закрыта"),
         (STATUS_CLOSED, "регистрация закрыта"),
     ]
 
@@ -68,7 +72,7 @@ class Event(models.Model):
     description = models.TextField("Описание")
     is_deleted = models.BooleanField("Деактивировано", default=False)
     status = models.CharField(
-        "Статус", max_length=22, choices=STATUS_CHOISES, default=STATUS_OPEN
+        "Статус", max_length=30, choices=STATUS_CHOISES, default=STATUS_OPEN
     )
     format = models.CharField(
         "Формат", max_length=7, choices=FORMAT_CHOISES, default=FORMAT_HYBRID

@@ -229,6 +229,8 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(format_error)
         if attrs["event"].format != Event.FORMAT_HYBRID:
             attrs["format"] = attrs["event"].format
+        # TODO: после автоподстановки формата проверить, не закрыта ли регистрация
+        # на ивент в целом или для данного формата участия
 
         email_error: str | None = self.__class__.check_email(attrs, user)
         if email_error:
