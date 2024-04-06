@@ -3,15 +3,8 @@ from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
 
+from .utils import EVENT_ENDTIME_ERROR, EVENT_PART_STARTTIME_ERROR
 from users.models import Specialization
-
-DEFAULT_EVENT_ORGANIZATOR: str = "Яндекс"
-EVENT_ENDTIME_ERROR: str = (
-    "Мероприятие не может окончиться раньше даты времени его начала."
-)
-EVENT_PART_STARTTIME_ERROR: str = (
-    "Часть мероприятия не может начинаться раньше самого мероприятия."
-)
 
 
 class EventType(models.Model):
@@ -47,6 +40,8 @@ class Speaker(models.Model):
 
 class Event(models.Model):
     """Model for events."""
+
+    DEFAULT_EVENT_ORGANIZATOR: str = "Яндекс"
 
     FORMAT_OFFLINE: str = "offline"
     FORMAT_ONLINE: str = "online"
@@ -84,16 +79,13 @@ class Event(models.Model):
     cost = models.FloatField("Стоимость", default=0, validators=[MinValueValidator(0)])
     place = models.TextField("Место", blank=True)
     event_type = models.ForeignKey(
-        EventType,
-        related_name="events",
-        on_delete=models.SET_DEFAULT,
-        default="deleted event",
+        EventType, related_name="events", on_delete=models.CASCADE, verbose_name="Тип"
     )
     specializations = models.ForeignKey(
         Specialization,
         related_name="events",
-        on_delete=models.SET_DEFAULT,
-        default="deleted specialization",
+        on_delete=models.CASCADE,
+        verbose_name="Направление",
     )
     participant_offline_limit = models.PositiveIntegerField(
         "Количество офлайн участников", blank=True, null=True

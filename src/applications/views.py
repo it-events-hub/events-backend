@@ -14,6 +14,10 @@ from api.loggers import logger
 from users.models import Specialization
 
 
+# TODO: у авторизованного должен быть эндпойнт отмены заявки, это должно отражаться на
+# лимитах - при подаче заявок увеличивать лимиты у ивента, а если лимиты достигнуты,
+# то закрывать регистрацию. Если заявка отменена авторизованным юзером, то открывать
+# регистрацию снова.
 class ApplicationCreateAPIView(CreateAPIView):
     """APIView to create applications for participation in events."""
 
@@ -24,8 +28,9 @@ class ApplicationCreateAPIView(CreateAPIView):
             return ApplicationCreateAuthorizedSerializer
         return ApplicationCreateAnonymousSerializer
 
+    @staticmethod
     def update_authenticated_user_personal_data(
-        self, user: SimpleLazyObject, validated_data: list[Any]
+        user: SimpleLazyObject, validated_data: list[Any]
     ) -> None:
         """
         Updates personal data if authenticated user change this data in the application.
@@ -67,7 +72,7 @@ class ApplicationCreateAPIView(CreateAPIView):
         """
         user: SimpleLazyObject | AnonymousUser = self.request.user
         if user.is_authenticated:
-            self.update_authenticated_user_personal_data(
+            self.__class__.update_authenticated_user_personal_data(
                 user, serializer.validated_data
             )
             serializer.save(user=user)

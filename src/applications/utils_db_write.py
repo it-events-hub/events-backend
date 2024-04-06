@@ -1,4 +1,5 @@
 from .models import Application, NotificationSettings
+from api.loggers import logger
 from users.models import User
 
 
@@ -9,3 +10,6 @@ def create_notification_settings(
     user = User.objects.get(pk=user_pk) if user_pk else None
     application = Application.objects.get(pk=application_pk) if application_pk else None
     NotificationSettings.objects.create(user=user, application=application)
+    logger.debug(
+        f"Notification settings for user {user}, application {application} were added."
+    )
