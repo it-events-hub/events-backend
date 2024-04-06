@@ -28,7 +28,6 @@ TELEGRAM_ID_REGEX: str = r"^@[a-zA-Z0-9_]{5,32}$"
 
 def check_birth_date(birth_date: date) -> str | None:
     """Checks birth date."""
-    print(type(birth_date))
     now = timezone.now()
     if birth_date and birth_date + relativedelta(years=MIN_USER_AGE) > now.date():
         return BIRTH_DATE_TOO_YOUNG_ERROR_MESSAGE

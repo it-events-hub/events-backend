@@ -64,7 +64,11 @@ def check_another_user_telegram(
     user: User | SimpleLazyObject | None, telegram: str
 ) -> str | None:
     """Checks that the telegram does not belong to another user."""
-    if user and User.objects.exclude(pk=user.pk).filter(telegram=telegram).exists():
+    if (
+        user
+        and telegram
+        and User.objects.exclude(pk=user.pk).filter(telegram=telegram).exists()
+    ):
         return APPLICATION_TELEGRAM_ERROR
     if not user and User.objects.filter(telegram=telegram).exists():
         return APPLICATION_TELEGRAM_ERROR
