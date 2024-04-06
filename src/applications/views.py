@@ -5,7 +5,7 @@ from .serializers import (
     ApplicationCreateAnonymousSerializer,
     ApplicationCreateAuthorizedSerializer,
 )
-from .utils import create_notification_settings
+from .utils_db_write import create_notification_settings
 
 
 class ApplicationCreateAPIView(CreateAPIView):

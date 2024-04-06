@@ -26,6 +26,7 @@ class ApplicationAdmin(admin.ModelAdmin):
         "email",
         "status",
         "format",
+        "created",
     ]
     list_display_links = ["event"]
     search_fields = [
@@ -37,7 +38,7 @@ class ApplicationAdmin(admin.ModelAdmin):
         "first_name",
         "last_name",
     ]
-    list_filter = ["status", "source"]
+    list_filter = ["status", "source", "created"]
     ordering = ["pk"]
 
     def get_queryset(self, request):

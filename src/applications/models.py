@@ -2,7 +2,19 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, RegexValidator
 from django.db import models
 from django.db.models import CheckConstraint, Q
+from django.utils import timezone
 
+from .utils import (
+    APPLICATION_ANONYMOUS_REQUIRED_FIELDS_ERROR,
+    APPLICATION_EVENT_EMAIL_UNIQUE_ERROR,
+    APPLICATION_EVENT_PHONE_UNIQUE_ERROR,
+    APPLICATION_EVENT_TELEGRAM_UNIQUE_ERROR,
+    APPLICATION_FORMAT_ERROR,
+    APPLICATION_PHONE_ERROR,
+    APPLICATION_TELEGRAM_ERROR,
+    NOTIFICATION_SETTINGS_APPLICATION_OF_USER_ERROR,
+    check_another_user_email,
+)
 from events.models import Event
 from users.models import Specialization, User
 from users.utils import (
@@ -12,34 +24,6 @@ from users.utils import (
     TELEGRAM_ID_ERROR,
     TELEGRAM_ID_REGEX,
     check_birth_date,
-)
-
-APPLICATION_ANONYMOUS_REQUIRED_FIELDS_ERROR: str = (
-    "Если заявка подается от имени анонимного посетителя, в ней должны быть указаны "
-    "имя, фамилия, емейл, телефон и род деятельности."
-)
-APPLICATION_FORMAT_ERROR: str = (
-    "Формат участия в заявке не соответствует формату проведения мероприятия."
-)
-APPLICATION_EMAIL_ERROR: str = (
-    "Этот адрес электронной почты принадлежит другому пользователю."
-)
-APPLICATION_PHONE_ERROR: str = "Этот номер телефона принадлежит другому пользователю."
-APPLICATION_TELEGRAM_ERROR: str = "Этот Telegram ID принадлежит другому пользователю."
-APPLICATION_EVENT_EMAIL_UNIQUE_ERROR: str = (
-    "Заявка на данное мероприятие от пользователя с таким адресом электронной почты "
-    "уже существует."
-)
-APPLICATION_EVENT_PHONE_UNIQUE_ERROR: str = (
-    "Заявка на данное мероприятие от пользователя с таким номером телефона уже "
-    "существует."
-)
-APPLICATION_EVENT_TELEGRAM_UNIQUE_ERROR: str = (
-    "Заявка на данное мероприятие от пользователя с таким Telegram ID уже существует."
-)
-NOTIFICATION_SETTINGS_APPLICATION_OF_USER_ERROR: str = (
-    "Если заявка принадлежит зарегистрированному пользователю, настройки уведомлений "
-    "должны быть привязаны к этому пользователю, а не к его отдельным заявкам."
 )
 
 
@@ -66,6 +50,9 @@ class Source(models.Model):
 # это тоже будет на уровне апи, включая изменения specializations.
 # TODO: activity обязательный, хотя у зареганного юзера он всегда будет указан из-за
 # дефолтного значения.
+# TODO: если заявка анонима создается через Админку, то NotificationSettings для нее не
+# создается. Возможно тут поможет Celery: на уровне апи создаем NotificationSettings
+# синхронно, а если заявка создана в Админке, то создаем его асинхронно.
 class Application(models.Model):
     """Model for storing applications for participation in events."""
 
@@ -89,6 +76,7 @@ class Application(models.Model):
     status = models.CharField(
         "Статус", max_length=9, choices=STATUS_CHOISES, default=STATUS_SUBMITTED
     )
+    created = models.DateTimeField("Создано", default=timezone.now)
     event = models.ForeignKey(
         Event,
         related_name="applications",
@@ -190,13 +178,11 @@ class Application(models.Model):
         Checks that the email does not belong to another user.
         Checks that there is no application with the same event and email.
         """
-        if (
-            self.user
-            and User.objects.exclude(pk=self.user.pk).filter(email=self.email).exists()
-        ):
-            raise ValidationError(APPLICATION_EMAIL_ERROR)
-        if not self.user and User.objects.filter(email=self.email).exists():
-            raise ValidationError(APPLICATION_EMAIL_ERROR)
+        another_user_email_error: str | None = check_another_user_email(
+            user=self.user, email=self.email
+        )
+        if another_user_email_error:
+            raise ValidationError(another_user_email_error)
         if (
             self.email
             and Application.objects.exclude(pk=self.pk)
