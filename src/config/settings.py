@@ -195,6 +195,7 @@ SIMPLE_JWT = {
 DJOSER = {
     "LOGIN_FIELD": "email",
     "SERIALIZERS": {
+        'activation': 'djoser.serializers.ActivationSerializer',
         "user": "users.serializers.UserSerializer",
         "current_user": "users.serializers.UserSerializer",
     },
@@ -202,6 +203,8 @@ DJOSER = {
         # TODO: Add permissions
     },
     "HIDE_USERS": False,
+    "SEND_ACTIVATION_EMAIL": True,
+    "ACTIVATION_URL": "#/users/activation/{uid}/{token}",
 }
 
 # DRF-yasg Swagger settings (JWT-tokens)
