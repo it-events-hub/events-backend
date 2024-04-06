@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import User, Specialization
+from .models import Specialization, User
 
 
 class PasswordSerializer(serializers.ModelSerializer):

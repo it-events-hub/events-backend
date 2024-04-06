@@ -2,15 +2,14 @@ from http import HTTPStatus
 
 from django.contrib.auth import logout, update_session_auth_hash
 from django.utils.timezone import now
-
-from rest_framework.response import Response
-from rest_framework.viewsets import GenericViewSet
-from rest_framework.mixins import ListModelMixin, CreateModelMixin
-from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from djoser.serializers import UserCreateSerializer
 from djoser import compat, signals
 from djoser.conf import settings
+from djoser.serializers import UserCreateSerializer
+from rest_framework.decorators import action
+from rest_framework.mixins import CreateModelMixin, ListModelMixin
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.viewsets import GenericViewSet
 
 from .models import User
 from .serializers import UserSerializer
@@ -68,8 +67,9 @@ class ActivationViewSet(GenericViewSet):
     def get_serializer_class(self):
         if self.action == "activation":
             return settings.SERIALIZERS.activation
-        elif self.action == "resend_activation":
+        if self.action == "resend_activation":
             return settings.SERIALIZERS.password_reset
+        return None
 
     @action(["post"], detail=False)
     def activation(self, request, *args, **kwargs):
@@ -113,14 +113,15 @@ class PasswordViewSet(GenericViewSet):
     def get_serializer_class(self):
         if self.action == "reset_password":
             return settings.SERIALIZERS.password_reset
-        elif self.action == "reset_password_confirm":
+        if self.action == "reset_password_confirm":
             if settings.PASSWORD_RESET_CONFIRM_RETYPE:
                 return settings.SERIALIZERS.password_reset_confirm_retype
             return settings.SERIALIZERS.password_reset_confirm
-        elif self.action == "set_password":
+        if self.action == "set_password":
             if settings.SET_PASSWORD_RETYPE:
                 return settings.SERIALIZERS.set_password_retype
             return settings.SERIALIZERS.set_password
+        return None
 
     @action(["post"], detail=False)
     def set_password(self, request, *args, **kwargs):

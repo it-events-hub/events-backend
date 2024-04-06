@@ -13,11 +13,11 @@ django-debug-toolbar = "^4.3.0"
 python-dateutil = "^2.9.0.post0"
 pillow = "^10.3.0"
 djangorestframework = "^3.15.1"
-django-filter = "^24.2"
-djoser = "^2.2.2"
 drf-standardized-errors = "^0.13.0"
 django-cors-headers = "^4.3.1"
 drf-yasg = "^1.21.7"
+django-filter = "^24.2"
+djoser = "^2.2.2"
 
 
 [tool.poetry.group.dev.dependencies]
