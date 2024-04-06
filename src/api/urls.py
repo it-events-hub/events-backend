@@ -3,26 +3,13 @@ from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 from rest_framework.routers import DefaultRouter
-from rest_framework_simplejwt import views
-
-from djoser.urls import base
-
-from users.views import (
-    UserModelViewSet,
-    ActivationViewSet,
-    PasswordViewSet,
-)
 
 app_name = "api"
 
 router = DefaultRouter()
-router.register("users", UserModelViewSet, "users")
-router.register("users", ActivationViewSet, "activation")
-router.register("users", PasswordViewSet, "password")
 
 urlpatterns = [
     path("", include(router.urls)),
-    path("auth/", include("djoser.urls.jwt")),
 ]
 
 # TODO: add email address and license type
