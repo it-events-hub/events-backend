@@ -1,41 +1,29 @@
-from dateutil.relativedelta import relativedelta
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, RegexValidator
 from django.db import models
-from django.db.models import CheckConstraint, Q, UniqueConstraint
+from django.db.models import CheckConstraint, Q
 from django.utils import timezone
 
+from .utils import (
+    APPLICATION_ANONYMOUS_REQUIRED_FIELDS_ERROR,
+    APPLICATION_EVENT_EMAIL_UNIQUE_ERROR,
+    APPLICATION_EVENT_PHONE_UNIQUE_ERROR,
+    APPLICATION_EVENT_TELEGRAM_UNIQUE_ERROR,
+    APPLICATION_FORMAT_ERROR,
+    NOTIFICATION_SETTINGS_APPLICATION_OF_USER_ERROR,
+    check_another_user_email,
+    check_another_user_phone,
+    check_another_user_telegram,
+)
 from events.models import Event
-from users.models import (
-    BIRTH_DATE_TOO_OLD_ERROR_MESSAGE,
-    BIRTH_DATE_TOO_YOUNG_ERROR_MESSAGE,
+from users.models import Specialization, User
+from users.utils import (
     MAX_EXPERIENCE_YEARS,
-    MAX_USER_AGE,
-    MIN_USER_AGE,
     PHONE_NUMBER_ERROR,
     PHONE_NUMBER_REGEX,
     TELEGRAM_ID_ERROR,
     TELEGRAM_ID_REGEX,
-    Specialization,
-    User,
-)
-
-APPLICATION_ANONYMOUS_REQUIRED_FIELDS_ERROR: str = (
-    "Если заявка подается от имени анонимного пользователя, в ней должны быть указаны "
-    "имя, фамилия, емейл, телефон, дата рождения, город и род деятельности."
-)
-APPLICATION_AUTHORIZED_REQUIRED_FIELDS_ERROR: str = (
-    "Если заявка подается от имени зарегистрированного пользователя, в его Личном "
-    "кабинете либо в самой заявке должны быть указаны дата рождения и город. Указанные "
-    "в заявке дата рождения и город будут автоматически сохранены для данного "
-    "пользователя."
-)
-APPLICATION_FORMAT_ERROR: str = (
-    "Формат участия в заявке не соответствует формату проведения мероприятия."
-)
-NOTIFICATION_SETTINGS_APPLICATION_OF_USER_ERROR: str = (
-    "Если заявка принадлежит зарегистрированному пользователю, настройки уведомлений "
-    "должны быть привязаны к этому пользователю, а не к его отдельным заявкам."
+    check_birth_date,
 )
 
 
@@ -53,15 +41,15 @@ class Source(models.Model):
         return self.name
 
 
-# TODO: сейчас в заявке автоматически заполняются поля зарегистрированного юзера,
-# кроме его специализаций, т.к. там связь многие-ко-многим, и они почему-то
-# не сохраняются в БД, даже если создавать их в методе save.
-# Поэтому нужно автозаполнять специализации на уровне апи.
+# TODO: в Админке не работает обновление specializations зареганного юзера при их
+# изменении в заявке, это работает только на уровне апи. В Админке обновления
+# specializations не сохраняются, даже если создавать их в методе save.
 # TODO: При внесении изменений в данные профиля нужно будет обновлять их и во всех
 # заявках данного пользователя (заявки на мероприятия, где is_event_started=False),
-# это тоже будет на уровне апи.
-# TODO: поле source пришлось сделать необязательным на уровне модели,
-# надо сделать его обязательным на уровне апи
+# это тоже будет на уровне апи, включая изменения specializations.
+# TODO: если заявка анонима создается через Админку, то NotificationSettings для нее не
+# создается. Возможно тут поможет Celery: на уровне апи создаем NotificationSettings
+# синхронно, а если заявка создана в Админке, то создаем его асинхронно.
 class Application(models.Model):
     """Model for storing applications for participation in events."""
 
@@ -85,6 +73,7 @@ class Application(models.Model):
     status = models.CharField(
         "Статус", max_length=9, choices=STATUS_CHOISES, default=STATUS_SUBMITTED
     )
+    created = models.DateTimeField("Создано", default=timezone.now)
     event = models.ForeignKey(
         Event,
         related_name="applications",
@@ -140,10 +129,7 @@ class Application(models.Model):
     birth_date = models.DateField("Дата рождения", blank=True, null=True)
     city = models.CharField("Город", max_length=40, blank=True, null=True)
     activity = models.CharField(
-        "Род занятий",
-        max_length=20,
-        choices=User.ACTIVITY_CHOISES,
-        default=User.ACTIVITY_WORK,
+        "Род занятий", max_length=20, choices=User.ACTIVITY_CHOISES
     )
     company = models.CharField("Место работы", max_length=50, blank=True, null=True)
     position = models.CharField("Должность", max_length=100, blank=True, null=True)
@@ -161,11 +147,6 @@ class Application(models.Model):
         verbose_name = "Заявка"
         verbose_name_plural = "Заявки"
         constraints = [
-            UniqueConstraint(fields=["event", "email"], name="unique_event_email"),
-            UniqueConstraint(fields=["event", "phone"], name="unique_event_phone"),
-            UniqueConstraint(
-                fields=["event", "telegram"], name="unique_event_telegram"
-            ),
             CheckConstraint(
                 check=Q(user__isnull=False)
                 | (
@@ -174,8 +155,6 @@ class Application(models.Model):
                     & ~Q(last_name__isnull=True)
                     & ~Q(email__isnull=True)
                     & ~Q(phone__isnull=True)
-                    & ~Q(birth_date__isnull=True)
-                    & ~Q(city__isnull=True)
                     & ~Q(activity__isnull=True)
                 ),
                 name="check_user_or_details_filled",
@@ -183,20 +162,67 @@ class Application(models.Model):
             ),
         ]
 
-    def clean_fields(self, exclude=None):
-        """Checks the user's birth date."""
-        super().clean_fields(exclude=exclude)
-        now = timezone.now()
+    def check_format(self):
+        """Checks the application format and the event format match each other."""
         if (
-            self.birth_date
-            and self.birth_date + relativedelta(years=MIN_USER_AGE) > now.date()
+            self.event.format != Event.FORMAT_HYBRID
+            and self.event.format != self.format
         ):
-            raise ValidationError(BIRTH_DATE_TOO_YOUNG_ERROR_MESSAGE)
+            raise ValidationError(APPLICATION_FORMAT_ERROR)
+
+    def check_email(self):
+        """
+        Checks that the email does not belong to another user.
+        Checks that there is no application with the same event and email.
+        """
+        another_user_email_error: str | None = check_another_user_email(
+            user=self.user, email=self.email
+        )
+        if another_user_email_error:
+            raise ValidationError(another_user_email_error)
         if (
-            self.birth_date
-            and self.birth_date + relativedelta(years=MAX_USER_AGE) < now.date()
+            self.email
+            and Application.objects.exclude(pk=self.pk)
+            .filter(event=self.event, email=self.email)
+            .exists()
         ):
-            raise ValidationError(BIRTH_DATE_TOO_OLD_ERROR_MESSAGE)
+            raise ValidationError(APPLICATION_EVENT_EMAIL_UNIQUE_ERROR)
+
+    def check_phone(self):
+        """
+        Checks that the phone does not belong to another user.
+        Checks that there is no application with the same event and phone.
+        """
+        another_user_phone_error: str | None = check_another_user_phone(
+            user=self.user, phone=self.phone
+        )
+        if another_user_phone_error:
+            raise ValidationError(another_user_phone_error)
+        if (
+            self.phone
+            and Application.objects.exclude(pk=self.pk)
+            .filter(event=self.event, phone=self.phone)
+            .exists()
+        ):
+            raise ValidationError(APPLICATION_EVENT_PHONE_UNIQUE_ERROR)
+
+    def check_telegram(self):
+        """
+        Checks that the telegram does not belong to another user.
+        Checks that there is no application with the same event and telegram.
+        """
+        another_user_telegram_error: str | None = check_another_user_telegram(
+            user=self.user, telegram=self.telegram
+        )
+        if another_user_telegram_error:
+            raise ValidationError(another_user_telegram_error)
+        if (
+            self.telegram
+            and Application.objects.exclude(pk=self.pk)
+            .filter(event=self.event, telegram=self.telegram)
+            .exists()
+        ):
+            raise ValidationError(APPLICATION_EVENT_TELEGRAM_UNIQUE_ERROR)
 
     def autofill_fields(self):
         """
@@ -218,25 +244,35 @@ class Application(models.Model):
     def clean(self):
         """
         Checks and triggers automatic filling of application fields if it is submitted
-        by an authenticated user. Saves user's birth_date and city if they were NULL.
+        by an authenticated user.
+        Updates user data, if it was changed in the application.
         """
-        if (
-            self.user
-            and not (self.user.birth_date and self.user.city)
-            and not (self.birth_date and self.city)
-        ):
-            raise ValidationError(APPLICATION_AUTHORIZED_REQUIRED_FIELDS_ERROR)
-        if self.user and not (self.user.birth_date and self.user.city):
-            self.user.birth_date = self.user.birth_date or self.birth_date
-            self.user.city = self.user.city or self.city
-            self.user.save()
-        if self.user:
-            self.autofill_fields()
-        if (
-            self.event.format != Event.FORMAT_HYBRID
-            and self.event.format != self.format
-        ):
-            raise ValidationError(APPLICATION_FORMAT_ERROR)
+        user_data: list[str] = {
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "email": self.email,
+            "phone": self.phone,
+            "telegram": self.telegram,
+            "birth_date": self.birth_date,
+            "city": self.city,
+            "activity": self.activity,
+            "company": self.company,
+            "position": self.position,
+            "experience_years": self.experience_years,
+        }
+        birth_date_error: str | None = check_birth_date(self.birth_date)
+        if birth_date_error:
+            raise ValidationError(birth_date_error)
+        self.check_format()
+        self.check_email()
+        self.check_phone()
+        self.check_telegram()
+        if self.user and any(user_data):
+            for key, value in user_data.items():
+                if value:
+                    setattr(self.user, key, value)
+            self.user.save()  # обновляем информацию пользователя кроме specializations
+            self.autofill_fields()  # автоматически заполняем поля заявки
 
     def __str__(self) -> str:
         if self.user:

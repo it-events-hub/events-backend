@@ -17,7 +17,17 @@ class SourceAdmin(admin.ModelAdmin):
 class ApplicationAdmin(admin.ModelAdmin):
     """Class to display applications for participation in events in admin panel."""
 
-    list_display = ["pk", "event", "user", "first_name", "last_name", "status"]
+    list_display = [
+        "pk",
+        "event",
+        "user",
+        "first_name",
+        "last_name",
+        "email",
+        "status",
+        "format",
+        "created",
+    ]
     list_display_links = ["event"]
     search_fields = [
         "event__name",
@@ -28,8 +38,12 @@ class ApplicationAdmin(admin.ModelAdmin):
         "first_name",
         "last_name",
     ]
-    list_filter = ["status", "source"]
+    list_filter = ["status", "source", "created"]
     ordering = ["pk"]
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.prefetch_related("user")
 
 
 @admin.register(NotificationSettings)

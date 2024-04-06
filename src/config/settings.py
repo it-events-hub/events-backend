@@ -71,6 +71,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -195,6 +196,7 @@ SIMPLE_JWT = {
 DJOSER = {
     "LOGIN_FIELD": "email",
     "SERIALIZERS": {
+        "activation": "djoser.serializers.ActivationSerializer",
         "user": "users.serializers.UserSerializer",
         "current_user": "users.serializers.UserSerializer",
     },
@@ -202,6 +204,8 @@ DJOSER = {
         # TODO: Add permissions
     },
     "HIDE_USERS": False,
+    "SEND_ACTIVATION_EMAIL": True,
+    "ACTIVATION_URL": "#/users/activation/{uid}/{token}",
 }
 
 # DRF-yasg Swagger settings (JWT-tokens)
