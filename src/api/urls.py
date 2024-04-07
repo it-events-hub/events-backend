@@ -6,6 +6,7 @@ from rest_framework.routers import DefaultRouter
 
 from applications.views import ApplicationCreateAPIView
 from users.views import ActivationViewSet, PasswordViewSet, UserModelViewSet
+from events.views import EventViewSet
 
 # from rest_framework_simplejwt import views
 # from djoser.urls import base
@@ -17,6 +18,7 @@ router = DefaultRouter()
 router.register("users", UserModelViewSet, "users")
 router.register("users", ActivationViewSet, "activation")
 router.register("users", PasswordViewSet, "password")
+router.register(r'events', EventViewSet, "events")
 
 # TODO: добавить в эндпойнт списка ивентов спикера (спикер первого доклада)
 
