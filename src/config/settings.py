@@ -38,7 +38,9 @@ if MODE == "dev":
 else:
     DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", default="").split()
+
+CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", default="").split()
 
 # For django-debug-toolbar
 if MODE == "dev":
@@ -104,7 +106,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-if os.getenv("DOCKER") == "yes":
+if DOCKER == "yes":
     DATABASES = {
         "default": {
             "ENGINE": os.getenv("DB_ENGINE", default="django.db.backends.postgresql"),
