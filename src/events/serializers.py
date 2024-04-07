@@ -39,6 +39,9 @@ class EventPartSerializer(ModelSerializer):
         fields = "__all__"
 
 
+# TODO: сделать валидацию (метод validate в сериализаторе создания/редактирования нового
+# ивента), что если формат ивента офлайн или гибрид, то поле place обязательно для
+# заполнения
 class EventSerializer(ModelSerializer):
     """Serializer for handling a list of events."""
 

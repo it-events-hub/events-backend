@@ -21,8 +21,6 @@ router.register("users", PasswordViewSet, "password")
 router.register("events", EventViewSet, "events")
 router.register("applications", ApplicationViewSet)
 
-# TODO: добавить в эндпойнт списка ивентов спикера (спикер первого доклада)
-
 urlpatterns = [
     path("", include(router.urls)),
     path("auth/", include("djoser.urls.jwt")),

@@ -180,9 +180,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # DRF Settings
 
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ),
+    # "DEFAULT_AUTHENTICATION_CLASSES": (
+    #     "rest_framework_simplejwt.authentication.JWTAuthentication",
+    # ),
     "EXCEPTION_HANDLER": "drf_standardized_errors.handler.exception_handler",
 }
 
@@ -220,9 +220,10 @@ SWAGGER_SETTINGS = {
 }
 
 # Querycount settings. See https://github.com/bradmontgomery/django-querycount
+# DISPLAY_DUPLICATES - how many duplicated queries to display (None or integer)
 
 QUERYCOUNT = {
-    "DISPLAY_DUPLICATES": None,  # how many duplicated queries to display (None or int)
+    "DISPLAY_DUPLICATES": None,
 }
 
 # CORS settings for frontend development

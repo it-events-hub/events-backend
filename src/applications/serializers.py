@@ -42,6 +42,8 @@ APPLICATION_EVENT_ONLINE_CLOSED_ERROR: str = (
 # TODO: При подаче заявки авторизованным нужна проверка, что нет заявки на тот же ивент
 # от этого же юзера, иначе он может менять в заявке свои емейл, телефон, телеграм,
 # и получается, что у него много заявок на одно и то же мероприятие
+# TODO: Запретить регаться на ивент, который уже начался (в методе validate проверять
+# поле start_time у ивента)
 class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
     """Serializer to create applications on behalf of authorized site visitors."""
 
