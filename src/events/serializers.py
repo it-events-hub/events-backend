@@ -39,6 +39,9 @@ class EventPartSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+# TODO: сделать валидацию (метод validate в сериализаторе создания/редактирования нового
+# ивента), что если формат ивента офлайн или гибрид, то поле place обязательно для
+# заполнения
 class EventSerializer(serializers.ModelSerializer):
     """Serializer for handling a list of events."""
 
@@ -49,6 +52,11 @@ class EventSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
         fields = "__all__"
+
+    @classmethod
+    def setup_eager_loading(cls, queryset):
+        """Performs necessary eager loading of events."""
+        return queryset.select_related("event_type", "specializations")
 
 
 class EventCreateSerializer(serializers.ModelSerializer):

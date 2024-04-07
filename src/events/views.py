@@ -1,14 +1,36 @@
+from django.utils.decorators import method_decorator
+from django_filters import rest_framework as rf_filters
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
+from rest_framework.filters import OrderingFilter
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from .models import Event
+from .schemas import EVENT_LIST_DESCRIPTION, EVENT_LIST_FILTERS, EVENT_LIST_RESPONSES
 from .serializers import EventCreateSerializer, EventSerializer
+from api.filters import EventsFilter
 
 
 # TODO: добавить в сериализаторы Event отображение количества поданных заявок
 # (онлайн и офлайн), в Админку тоже можно добавить
-# TODO: добавить фильтрацию, разграничить доступ, добавить пагинацию
+# TODO: добавить фильтрацию, разграничить доступ, добавить пагинацию (всегда 6 объектов)
+# TODO: сделать новый эндпойнт (@action) для показа авторизованному юзеру 3 персональных
+# рекомнендаций, если у него в ЛК нет направлений, то 3 ближайших, если есть
+# направления, то 3 ближайших с этими направлениями, если он будет показывать те же
+# ивенты, что и основной эндпойнт Афиши, это не страшно
+# TODO: если фильтр по датам не применен, то показывать только еще не начавшиеся
+# ивенты, наверху самые ранние, ниже более поздние, а если применен фильтр по датам, то
+# тоже хронологический порядок - наверху более ранние, ниже - более поздние
+@method_decorator(
+    name="list",
+    decorator=swagger_auto_schema(
+        operation_summary="list",
+        operation_description=EVENT_LIST_DESCRIPTION,
+        responses=EVENT_LIST_RESPONSES,
+        manual_parameters=EVENT_LIST_FILTERS,
+    ),
+)
 class EventViewSet(ModelViewSet):
     """
     ViewSet provides endpoints for listing, creating, retrieving, updating,
@@ -18,11 +40,18 @@ class EventViewSet(ModelViewSet):
     queryset = Event.objects.prefetch_related("event_type", "parts", "specializations")
     http_method_names = ["get", "post", "patch"]
     serializer_class = EventSerializer
+    filter_backends = [rf_filters.DjangoFilterBackend, OrderingFilter]  #
+    filterset_class = EventsFilter
+    ordering_fields = ["start_time"]
+    ordering = ["pk"]
 
     def get_serializer_class(self):
         if self.action == "create":
             return EventCreateSerializer
         return EventSerializer
+
+    def get_queryset(self):
+        return EventSerializer.setup_eager_loading(Event.objects.all())
 
     @action(
         detail=True,

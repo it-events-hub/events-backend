@@ -1,5 +1,6 @@
 from typing import Any
 
+from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 from rest_framework import serializers
 
@@ -7,6 +8,7 @@ from .models import Application, NotificationSettings
 from .utils import (
     APPLICATION_EVENT_EMAIL_UNIQUE_ERROR,
     APPLICATION_EVENT_PHONE_UNIQUE_ERROR,
+    APPLICATION_EVENT_STARTTIME_ERROR,
     APPLICATION_EVENT_TELEGRAM_UNIQUE_ERROR,
     check_another_user_email,
     check_another_user_phone,
@@ -245,6 +247,9 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
             if isinstance(self.context["request"].user, User)
             else None
         )
+
+        if attrs["event"].start_time < timezone.now():
+            raise serializers.ValidationError(APPLICATION_EVENT_STARTTIME_ERROR)
 
         format_hybrid_required_error: str | None = (
             self.__class__.check_format_hybrid_required(attrs)
