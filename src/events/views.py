@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from .models import Event
-from .serializers import EventDetailSerializer, EventSerializer
+from .serializers import EventCreateSerializer, EventSerializer
 
 
 # TODO: добавить в сериализаторы Event отображение количества поданных заявок
@@ -15,13 +15,13 @@ class EventViewSet(ModelViewSet):
     partially updating, and deactivating events.
     """
 
-    queryset = Event.objects.all()
+    queryset = Event.objects.prefetch_related("event_type", "parts", "specializations")
     http_method_names = ["get", "post", "patch"]
     serializer_class = EventSerializer
 
     def get_serializer_class(self):
-        if self.action == "retrieve":
-            return EventDetailSerializer
+        if self.action == "create":
+            return EventCreateSerializer
         return EventSerializer
 
     @action(

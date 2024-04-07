@@ -1,10 +1,10 @@
-from rest_framework.serializers import ModelSerializer
+from rest_framework import serializers
 
 from .models import Event, EventPart, EventType, Speaker
 from users.models import Specialization
 
 
-class EventTypeSerializer(ModelSerializer):
+class EventTypeSerializer(serializers.ModelSerializer):
     """Serializer for handling event types."""
 
     class Meta:
@@ -12,16 +12,16 @@ class EventTypeSerializer(ModelSerializer):
         fields = "__all__"
 
 
-class SpecializationSerializer(ModelSerializer):
+class SpecializationSerializer(serializers.ModelSerializer):
     """Serializer for handling specialization types."""
 
     class Meta:
         model = Specialization
         fields = "__all__"
-        ref_name = "SpecializationUsers"
+        ref_name = "UserSpecialization"
 
 
-class SpeakerSerializer(ModelSerializer):
+class SpeakerSerializer(serializers.ModelSerializer):
     """Serializer for handling speakers."""
 
     class Meta:
@@ -29,75 +29,45 @@ class SpeakerSerializer(ModelSerializer):
         fields = "__all__"
 
 
-class EventPartSerializer(ModelSerializer):
+class EventPartSerializer(serializers.ModelSerializer):
     """Serializer for handling event parts."""
 
-    speaker = SpeakerSerializer()
+    speaker = SpeakerSerializer(read_only=True)
 
     class Meta:
         model = EventPart
         fields = "__all__"
 
 
-class EventSerializer(ModelSerializer):
+class EventSerializer(serializers.ModelSerializer):
     """Serializer for handling a list of events."""
 
-    event_type = EventTypeSerializer()
-    specializations = SpecializationSerializer()
+    event_type = EventTypeSerializer(read_only=True)
+    specializations = SpecializationSerializer(read_only=True)
+    event_parts = EventPartSerializer(many=True, source="parts")
 
     class Meta:
         model = Event
         fields = "__all__"
 
-    def create(self, validated_data):
-        event_type_id = validated_data.pop("event_type_id", None)
-        event_type_data = validated_data.pop("event_type", None)
-        specializations_data = validated_data.pop("specializations", None)
 
-        event = Event.objects.create(**validated_data)
+class EventCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating an event."""
 
-        if event_type_id:
-            event_type, created = EventType.objects.get_or_create(id=event_type_id)
-            event.event_type = event_type
-
-        elif event_type_data:
-            event_type_serializer = EventTypeSerializer(data=event_type_data)
-            if event_type_serializer.is_valid():
-                event_type = event_type_serializer.save()
-                event.event_type = event_type
-
-        specializations_serializer = SpecializationSerializer(data=specializations_data)
-        if specializations_serializer.is_valid():
-            specializations = specializations_serializer.save()
-            event.specializations = specializations
-
-        event.save()
-        return event
-
-    def update(self, instance, validated_data):
-        # for attr, value in validated_data.items():
-        #     setattr(instance, attr, value)
-        instance.name = validated_data.get("name", instance.name)
-        instance.organization = validated_data.get(
-            "organization", instance.organization
-        )
-
-        event_type_data = validated_data.pop("event_type")
-        event_type_serializer = EventTypeSerializer(
-            instance.event_type, data=event_type_data
-        )
-
-        if event_type_serializer.is_valid():
-            event_type_serializer.save()
-
-        instance.save()
-        return instance
-
-
-class EventDetailSerializer(EventSerializer):
-    """Serializer for displaying detailed information about an event."""
-
-    event_parts = EventPartSerializer(many=True, source="parts")
-
-    class Meta(EventSerializer.Meta):
-        pass
+    class Meta:
+        model = Event
+        fields = [
+            "name",
+            "description",
+            "specializations",
+            "start_time",
+            "format",
+            "place",
+            "participant_offline_limit",
+            "participant_online_limit",
+            "livestream_link",
+            "additional_materials_link",
+            "is_featured",
+            "is_featured_on_yandex_afisha",
+            "event_type",
+        ]
