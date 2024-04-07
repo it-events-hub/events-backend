@@ -18,7 +18,7 @@ router = DefaultRouter()
 router.register("users", UserModelViewSet, "users")
 router.register("users", ActivationViewSet, "activation")
 router.register("users", PasswordViewSet, "password")
-router.register(r'events', EventViewSet, "events")
+router.register(r"events", EventViewSet, "events")
 router.register("applications", ApplicationViewSet)
 
 # TODO: добавить в эндпойнт списка ивентов спикера (спикер первого доклада)
