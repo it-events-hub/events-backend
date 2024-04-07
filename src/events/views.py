@@ -6,6 +6,8 @@ from .models import Event
 from .serializers import EventDetailSerializer, EventSerializer
 
 
+# TODO: добавить в сериализаторы Event отображение количества поданных заявок
+# (онлайн и офлайн), в Админку тоже можно добавить
 # TODO: добавить фильтрацию, разграничить доступ, добавить пагинацию
 class EventViewSet(ModelViewSet):
     """
