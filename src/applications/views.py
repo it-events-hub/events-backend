@@ -20,8 +20,6 @@ from users.models import Specialization
 
 
 # TODO: Если заявка отменена авторизованным юзером, то открывать регистрацию снова.
-# TODO: добавить в сериализаторы Event отображение количества поданных заявок
-# (онлайн и офлайн), в Админку тоже можно добавить, хотя бы для event detail
 class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
     """ViewSet to create and delete applications for participation in events."""
 
@@ -135,8 +133,14 @@ class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
 
     def perform_create(self, serializer):
         """
-        Adds user to the application if request user is authenticated.
-        Triggers notification settings instance creation if request user is anonymous.
+        Adds the user to the application if the request user is authenticated.
+        Triggers the authenticated user personal data update if the authenticated user
+        change personal data in the application.
+        Authomatically fills in the fields of an application of the authenticated user.
+        Triggers notification settings instance creation if the request user is
+        anonymous.
+        Triggers event participant limits checking and closure of registration
+        if the limits are reached.
         """
         user: SimpleLazyObject | AnonymousUser = self.request.user
         if user.is_authenticated:
@@ -165,6 +169,47 @@ class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
         ApplicationViewSet.check_event_limits_and_close_registration(
             serializer.validated_data["event"]
         )
+
+    # TODO: отменить заявку может только авторизованный (на входе в эндпойнт удаления
+    # стоит проверка в permission, наверно здесь можно дополнительно не проверять, что
+    # юзер авторизован);
+
+    # ситуация 1: статус ивента "регистрация открыта", тогда не меняем статус ивента
+
+    # ситуация 2: ивент имеет строгий формат и статус был "регистрация закрыта", тогда
+    # после отмены заявки меняем статус ивента на "регистрация открыта"
+
+    # ситуация 3: ивент имеет гибридный формат и статус "регистрация закрыта", тогда
+    # нужно посмотреть, какие лимиты имеет этот ивент (у него может не быть какого-то
+    # типа лимита, ведь эти поля необязательные) и какой формат был у отмененной заявки:
+    # - если у ивента были оба лимита и заявка была офлайн, тогда меняем статус ивента
+    # на "регистрация онлайн закрыта" (то есть возобновляем офлайн-регистрацию)
+    # - если у ивента были оба лимита и заявка была онлайн, тогда меняем статус ивента
+    # на "регистрация офлайн закрыта" (то есть возобновляем онлайн-регистрацию)
+    # - если у ивента был только офлайн-лимит и заявка была офлайн, то меняем статус
+    # на "регистрация открыта"
+    # - если у ивента был только онлайн-лимит и заявка была онлайн, то меняем статус
+    # на "регистрация открыта"
+    # - если у ивента был только офлайн-лимит, а заявка была онлайн, то не меняем статус
+    # - если у ивента был только онлайн-лимит, а заявка была офлайн, то не меняем статус
+    # - если у ивента не было лимитов, то у него и статус должен был все время
+    # оставаться "регистрация открыта", но если админ в Админке вручную поменял статус
+    # на "регистрация закрыта", а потом кто-то отменил заявку, то не меняем статус
+    # ивента автоматически, пусть админ и дальше осуществляет ручное управление статусом
+    # ивента, раз он уже начал вмешиваться в автоматическую смену статусов
+
+    # ситуация 4: ивент имеет гибридный формат и статус "регистрация офлайн закрыта":
+    # - заявка была офлайн, тогда меняем статус ивента на "регистрация открыта"
+    # - заявка была онлайн, тогда не меняем статус ивента
+
+    # ситуация 5: ивент имеет гибридный формат и статус "регистрация онлайн закрыта":
+    # - заявка была онлайн, тогда меняем статус ивента на "регистрация открыта"
+    # - заявка была офлайн, тогда не меняем статус ивента
+
+    # TODO: add docstring
+    def perform_destroy(self, instance):
+        """"""
+        instance.delete()
 
 
 class NotificationSettingsAPIView(UpdateAPIView):
