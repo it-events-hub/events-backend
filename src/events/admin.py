@@ -51,6 +51,8 @@ class EventAdmin(admin.ModelAdmin):
         "is_deleted",
         "status",
         "format",
+        "participant_offline_limit",
+        "participant_online_limit",
         "start_time",
         "cost",
     ]

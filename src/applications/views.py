@@ -20,6 +20,7 @@ from users.models import Specialization
 
 
 # TODO: Если заявка отменена авторизованным юзером, то открывать регистрацию снова.
+# TODO: Возвращать статус 200 и response body в случае удаления объекта
 class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
     """ViewSet to create and delete applications for participation in events."""
 
@@ -74,7 +75,7 @@ class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
             event.format == Event.FORMAT_OFFLINE
             and event.participant_offline_limit
             and event.applications.filter(format=Event.FORMAT_OFFLINE).count()
-            == event.participant_offline_limit
+            >= event.participant_offline_limit
         )
 
     @staticmethod
@@ -84,7 +85,7 @@ class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
             event.format == Event.FORMAT_ONLINE
             and event.participant_online_limit
             and event.applications.filter(format=Event.FORMAT_ONLINE).count()
-            == event.participant_online_limit
+            >= event.participant_online_limit
         )
 
     @staticmethod
@@ -94,7 +95,7 @@ class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
             event.format == Event.FORMAT_HYBRID
             and event.participant_offline_limit
             and event.applications.filter(format=Event.FORMAT_OFFLINE).count()
-            == event.participant_offline_limit
+            >= event.participant_offline_limit
         )
 
     @staticmethod
@@ -104,9 +105,10 @@ class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
             event.format == Event.FORMAT_HYBRID
             and event.participant_online_limit
             and event.applications.filter(format=Event.FORMAT_ONLINE).count()
-            == event.participant_online_limit
+            >= event.participant_online_limit
         )
 
+    # TODO: add logging
     @staticmethod
     def check_event_limits_and_close_registration(event: Event) -> None:
         """
@@ -147,7 +149,7 @@ class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
             ApplicationViewSet.update_authenticated_user_personal_data(
                 user, serializer.validated_data
             )
-            serializer.save(
+            serializer.save(  # TODO: add logging (autocompletion of fields)
                 user=user,
                 first_name=user.first_name,
                 last_name=user.last_name,
@@ -176,8 +178,8 @@ class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
 
     # ситуация 1: статус ивента "регистрация открыта", тогда не меняем статус ивента
 
-    # ситуация 2: ивент имеет строгий формат и статус был "регистрация закрыта", тогда
-    # после отмены заявки меняем статус ивента на "регистрация открыта"
+    # DONE ситуация 2: ивент имеет строгий формат и статус был "регистрация закрыта",
+    # тогда после отмены заявки меняем статус ивента на "регистрация открыта"
 
     # ситуация 3: ивент имеет гибридный формат и статус "регистрация закрыта", тогда
     # нужно посмотреть, какие лимиты имеет этот ивент (у него может не быть какого-то
@@ -186,8 +188,8 @@ class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
     # на "регистрация онлайн закрыта" (то есть возобновляем офлайн-регистрацию)
     # - если у ивента были оба лимита и заявка была онлайн, тогда меняем статус ивента
     # на "регистрация офлайн закрыта" (то есть возобновляем онлайн-регистрацию)
-    # - если у ивента был только офлайн-лимит и заявка была офлайн, то меняем статус
-    # на "регистрация открыта"
+    # - DONE если у ивента был только офлайн-лимит и заявка была офлайн, то меняем
+    # статус на "регистрация открыта"
     # - если у ивента был только онлайн-лимит и заявка была онлайн, то меняем статус
     # на "регистрация открыта"
     # - если у ивента был только офлайн-лимит, а заявка была онлайн, то не меняем статус
@@ -198,18 +200,48 @@ class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
     # ивента автоматически, пусть админ и дальше осуществляет ручное управление статусом
     # ивента, раз он уже начал вмешиваться в автоматическую смену статусов
 
-    # ситуация 4: ивент имеет гибридный формат и статус "регистрация офлайн закрыта":
-    # - заявка была офлайн, тогда меняем статус ивента на "регистрация открыта"
+    # ситуация 4: ивент имеет гибридный формат, офлайн-лимит и статус "регистрация
+    # офлайн закрыта":
+    # - DONE заявка была офлайн, тогда меняем статус ивента на "регистрация открыта"
     # - заявка была онлайн, тогда не меняем статус ивента
 
-    # ситуация 5: ивент имеет гибридный формат и статус "регистрация онлайн закрыта":
-    # - заявка была онлайн, тогда меняем статус ивента на "регистрация открыта"
+    # ситуация 5: ивент имеет гибридный формат, онлайн-лимит и статус "регистрация
+    # онлайн закрыта":
+    # - DONE заявка была онлайн, тогда меняем статус ивента на "регистрация открыта"
     # - заявка была офлайн, тогда не меняем статус ивента
 
     # TODO: add docstring
+    # TODO: add logging (event status changes)
     def perform_destroy(self, instance):
         """"""
+        event = instance.event
+        application_format = instance.format
         instance.delete()
+        if event.format != Event.FORMAT_HYBRID and event.status == Event.STATUS_CLOSED:
+            event.status = Event.STATUS_OPEN
+        if (
+            event.format == Event.FORMAT_HYBRID
+            and event.participant_offline_limit
+            and event.status == Event.STATUS_OFFLINE_CLOSED
+            and application_format == Event.FORMAT_OFFLINE
+        ):
+            event.status = Event.STATUS_OPEN
+        if (
+            event.format == Event.FORMAT_HYBRID
+            and event.participant_online_limit
+            and event.status == Event.STATUS_ONLINE_CLOSED
+            and application_format == Event.FORMAT_ONLINE
+        ):
+            event.status = Event.STATUS_OPEN
+        if (  # TODO: потестить руками
+            event.format == Event.FORMAT_HYBRID
+            and event.participant_offline_limit
+            and not event.participant_online_limit
+            and event.status == Event.STATUS_CLOSED
+            and application_format == Event.FORMAT_OFFLINE
+        ):
+            event.status = Event.STATUS_OPEN
+        event.save()
 
 
 class NotificationSettingsAPIView(UpdateAPIView):

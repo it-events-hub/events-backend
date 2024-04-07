@@ -92,13 +92,22 @@ class Event(models.Model):
         verbose_name="Направление",
     )
     participant_offline_limit = models.PositiveIntegerField(
-        "Количество офлайн участников", blank=True, null=True
+        "Офлайн-лимит",
+        blank=True,
+        null=True,
+        help_text="Максимальное количество участников в формате офлайн",
     )
     participant_online_limit = models.PositiveIntegerField(
-        "Количество онлайн участников", blank=True, null=True
+        "Онлайн-лимит",
+        blank=True,
+        null=True,
+        help_text="Максимальное количество участников в формате онлайн",
     )
     registration_deadline = models.DateTimeField(
-        "Регистрация до", blank=True, null=True
+        "Регистрация до",
+        blank=True,
+        null=True,
+        help_text="Предельный срок (дата и время) регистрации на участие в мероприятии",
     )
     livestream_link = models.URLField("Трансляция", blank=True, null=True)
     additional_materials_link = models.URLField(

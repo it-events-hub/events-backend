@@ -39,6 +39,9 @@ APPLICATION_EVENT_ONLINE_CLOSED_ERROR: str = (
 )
 
 
+# TODO: При подаче заявки авторизованным нужна проверка, что нет заявки на тот же ивент
+# от этого же юзера, иначе он может менять в заявке свои емейл, телефон, телеграм,
+# и получается, что у него много заявок на одно и то же мероприятие
 class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
     """Serializer to create applications on behalf of authorized site visitors."""
 
@@ -91,15 +94,15 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
         Checks that registration for the event is open for the format
         specified in the application.
         """
-        if attrs["event"].status != Event.STATUS_CLOSED:
+        if attrs["event"].status == Event.STATUS_CLOSED:
             return APPLICATION_EVENT_CLOSED_ERROR
         if (
-            attrs["event"].status != Event.STATUS_OFFLINE_CLOSED
+            attrs["event"].status == Event.STATUS_OFFLINE_CLOSED
             and attrs["format"] == Event.FORMAT_OFFLINE
         ):
             return APPLICATION_EVENT_OFFLINE_CLOSED_ERROR
         if (
-            attrs["event"].status != Event.STATUS_ONLINE_CLOSED
+            attrs["event"].status == Event.STATUS_ONLINE_CLOSED
             and attrs["format"] == Event.FORMAT_ONLINE
         ):
             return APPLICATION_EVENT_ONLINE_CLOSED_ERROR
@@ -180,6 +183,7 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
         )
         same_telegram_in_user_personal_data: bool = bool(
             user
+            and user.telegram
             and attrs.get("telegram") is None
             and Application.objects.filter(
                 event=attrs["event"], telegram=user.telegram
@@ -247,7 +251,7 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
         )
         if format_hybrid_required_error:
             raise serializers.ValidationError(format_hybrid_required_error)
-        if attrs["event"].format != Event.FORMAT_HYBRID:
+        if attrs["event"].format != Event.FORMAT_HYBRID:  # TODO: add logging
             attrs["format"] = attrs["event"].format
         format_available_error: str | None = self.__class__.check_format_available(
             attrs
