@@ -64,6 +64,27 @@ EVENT_LIST_FILTERS = [
         ),
     ),
     openapi.Parameter(
+        "event_type",
+        openapi.IN_QUERY,
+        description=(
+            "filtering by event types, filter accepts one or several comma-separated "
+            "slug values, input example: ?event_type=conference%2Cmeetup"
+        ),
+        type=openapi.TYPE_STRING,
+        format=openapi.FORMAT_SLUG,
+    ),
+    openapi.Parameter(
+        "specializations",
+        openapi.IN_QUERY,
+        description=(
+            "filtering by event specializations, filter accepts one or several "
+            "comma-separated slug values, input example: "
+            "?specializations=backend,analytics"
+        ),
+        type=openapi.TYPE_STRING,
+        format=openapi.FORMAT_SLUG,
+    ),
+    openapi.Parameter(
         "start_date",
         openapi.IN_QUERY,
         description=(

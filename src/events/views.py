@@ -40,8 +40,10 @@ class EventViewSet(ModelViewSet):
     queryset = Event.objects.all()
     http_method_names = ["get", "post", "patch"]
     serializer_class = EventSerializer
-    filter_backends = [rf_filters.DjangoFilterBackend, OrderingFilter]
+    filter_backends = [rf_filters.DjangoFilterBackend, OrderingFilter]  #
     filterset_class = EventsFilter
+    ordering_fields = ["start_time"]
+    ordering = ["pk"]
 
     def get_serializer_class(self):
         if self.action == "retrieve":
