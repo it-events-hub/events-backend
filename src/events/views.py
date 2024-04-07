@@ -28,6 +28,9 @@ class EventViewSet(ModelViewSet):
             return EventDetailSerializer
         return EventSerializer
 
+    def get_queryset(self):
+        return EventSerializer.setup_eager_loading(Event.objects.all())
+
     @action(
         detail=True,
         methods=["patch"],

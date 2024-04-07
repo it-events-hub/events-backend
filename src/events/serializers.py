@@ -49,6 +49,11 @@ class EventSerializer(ModelSerializer):
         model = Event
         fields = "__all__"
 
+    @classmethod
+    def setup_eager_loading(cls, queryset):
+        """Performs necessary eager loading of events."""
+        return queryset.select_related("event_type", "specializations")
+
     def create(self, validated_data):
         event_type_id = validated_data.pop("event_type_id", None)
         event_type_data = validated_data.pop("event_type", None)

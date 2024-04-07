@@ -80,6 +80,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "debug_toolbar.middleware.DebugToolbarMiddleware",
+    "querycount.middleware.QueryCountMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -216,6 +217,12 @@ SWAGGER_SETTINGS = {
     "SECURITY_DEFINITIONS": {
         "Bearer": {"type": "apiKey", "name": "Authorization", "in": "header"}
     }
+}
+
+# Querycount settings. See https://github.com/bradmontgomery/django-querycount
+
+QUERYCOUNT = {
+    "DISPLAY_DUPLICATES": None,  # how many duplicated queries to display (None or int)
 }
 
 # CORS settings for frontend development

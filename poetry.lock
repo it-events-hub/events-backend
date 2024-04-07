@@ -392,6 +392,16 @@ files = [
 Django = ">=4.2"
 
 [[package]]
+name = "django-querycount"
+version = "0.8.3"
+description = "Middleware that Prints the number of DB queries to the runserver console."
+optional = false
+python-versions = "*"
+files = [
+    {file = "django-querycount-0.8.3.tar.gz", hash = "sha256:0782484e8a1bd29498fa0195a67106e47cdcc98fafe80cebb1991964077cb694"},
+]
+
+[[package]]
 name = "django-templated-mail"
 version = "1.1.1"
 description = "Send emails using Django template system."
@@ -1226,4 +1236,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "0fc8d33daf9cc6452b0c44b1ff743ca286cb3bcbcdddae2d8026126bc6ada75c"
+content-hash = "affb377400559ad732496c202464852c942e0088a680ef0b005bb267aaf7f3f3"
