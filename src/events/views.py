@@ -8,7 +8,7 @@ from rest_framework.viewsets import ModelViewSet
 
 from .models import Event
 from .schemas import EVENT_LIST_DESCRIPTION, EVENT_LIST_FILTERS, EVENT_LIST_RESPONSES
-from .serializers import EventDetailSerializer, EventSerializer
+from .serializers import EventCreateSerializer, EventSerializer
 from api.filters import EventsFilter
 
 
@@ -37,7 +37,7 @@ class EventViewSet(ModelViewSet):
     partially updating, and deactivating events.
     """
 
-    queryset = Event.objects.all()
+    queryset = Event.objects.prefetch_related("event_type", "parts", "specializations")
     http_method_names = ["get", "post", "patch"]
     serializer_class = EventSerializer
     filter_backends = [rf_filters.DjangoFilterBackend, OrderingFilter]  #
@@ -46,8 +46,8 @@ class EventViewSet(ModelViewSet):
     ordering = ["pk"]
 
     def get_serializer_class(self):
-        if self.action == "retrieve":
-            return EventDetailSerializer
+        if self.action == "create":
+            return EventCreateSerializer
         return EventSerializer
 
     def get_queryset(self):
