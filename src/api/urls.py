@@ -4,7 +4,7 @@ from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 from rest_framework.routers import DefaultRouter
 
-from applications.views import ApplicationCreateAPIView
+from applications.views import ApplicationViewSet, NotificationSettingsAPIView
 from users.views import ActivationViewSet, PasswordViewSet, UserModelViewSet
 from events.views import EventViewSet
 
@@ -19,13 +19,14 @@ router.register("users", UserModelViewSet, "users")
 router.register("users", ActivationViewSet, "activation")
 router.register("users", PasswordViewSet, "password")
 router.register(r'events', EventViewSet, "events")
+router.register("applications", ApplicationViewSet)
 
 # TODO: добавить в эндпойнт списка ивентов спикера (спикер первого доклада)
 
 urlpatterns = [
     path("", include(router.urls)),
     path("auth/", include("djoser.urls.jwt")),
-    path("applications/", ApplicationCreateAPIView.as_view()),
+    path("notification_settings/<int:pk>/", NotificationSettingsAPIView.as_view()),
 ]
 
 # TODO: add email address and license type
