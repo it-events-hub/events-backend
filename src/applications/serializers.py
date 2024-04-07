@@ -1,5 +1,6 @@
 from typing import Any
 
+from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 from rest_framework import serializers
 
@@ -7,6 +8,7 @@ from .models import Application, NotificationSettings
 from .utils import (
     APPLICATION_EVENT_EMAIL_UNIQUE_ERROR,
     APPLICATION_EVENT_PHONE_UNIQUE_ERROR,
+    APPLICATION_EVENT_STARTTIME_ERROR,
     APPLICATION_EVENT_TELEGRAM_UNIQUE_ERROR,
     check_another_user_email,
     check_another_user_phone,
@@ -42,8 +44,6 @@ APPLICATION_EVENT_ONLINE_CLOSED_ERROR: str = (
 # TODO: При подаче заявки авторизованным нужна проверка, что нет заявки на тот же ивент
 # от этого же юзера, иначе он может менять в заявке свои емейл, телефон, телеграм,
 # и получается, что у него много заявок на одно и то же мероприятие
-# TODO: Запретить регаться на ивент, который уже начался (в методе validate проверять
-# поле start_time у ивента)
 class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
     """Serializer to create applications on behalf of authorized site visitors."""
 
@@ -247,6 +247,9 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
             if isinstance(self.context["request"].user, User)
             else None
         )
+
+        if attrs["event"].start_time < timezone.now():
+            raise serializers.ValidationError(APPLICATION_EVENT_STARTTIME_ERROR)
 
         format_hybrid_required_error: str | None = (
             self.__class__.check_format_hybrid_required(attrs)
