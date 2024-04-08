@@ -1,7 +1,7 @@
 from django.db.models import Exists, OuterRef, Prefetch
 from rest_framework import serializers
 
-from .models import Event, EventPart, EventType, Speaker
+from .models import City, Event, EventPart, EventType, Speaker
 from applications.models import Application
 from users.models import Specialization
 
@@ -23,6 +23,25 @@ class EventTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventType
         fields = ["id", "event_type_name", "event_type_slug"]
+
+
+class CitySerializer(serializers.ModelSerializer):
+    """Serializer for handling cities of events."""
+
+    city_name = serializers.CharField(
+        source="name",
+        label=City._meta.get_field("name").verbose_name,
+        max_length=City._meta.get_field("name").max_length,
+    )
+    city_slug = serializers.SlugField(
+        source="slug",
+        label=City._meta.get_field("slug").verbose_name,
+        max_length=City._meta.get_field("slug").max_length,
+    )
+
+    class Meta:
+        model = City
+        fields = ["id", "city_name", "city_slug"]
 
 
 class SpecializationSerializer(serializers.ModelSerializer):
@@ -113,12 +132,13 @@ class EventPartSerializer(serializers.ModelSerializer):
 
 
 # TODO: сделать валидацию (метод validate в сериализаторе создания/редактирования нового
-# ивента), что если формат ивента офлайн или гибрид, то поле place обязательно для
-# заполнения - решить это после того, как примут решение по полям city и address
+# ивента), что если формат ивента офлайн или гибрид, то поля city и place должны быть
+# заполнены
 class EventSerializer(serializers.ModelSerializer):
     """Serializer for handling a list of events."""
 
     event_type = EventTypeSerializer(read_only=True)
+    city = CitySerializer(allow_null=True)
     specializations = SpecializationSerializer(read_only=True)
     event_parts = EventPartSerializer(many=True, source="parts")
     is_registrated = serializers.SerializerMethodField()
@@ -139,6 +159,7 @@ class EventSerializer(serializers.ModelSerializer):
             "start_time",
             "end_time",
             "cost",
+            "city",
             "place",
             "participant_offline_limit",
             "participant_online_limit",
@@ -158,12 +179,12 @@ class EventSerializer(serializers.ModelSerializer):
         """Performs necessary eager loading of events."""
         if user.is_anonymous:
             return queryset.select_related(
-                "event_type", "specializations"
+                "event_type", "specializations", "city"
             ).prefetch_related(
                 Prefetch("parts", queryset=EventPart.objects.select_related("speaker"))
             )
         return (
-            queryset.select_related("event_type", "specializations")
+            queryset.select_related("event_type", "specializations", "city")
             .prefetch_related(
                 Prefetch("parts", queryset=EventPart.objects.select_related("speaker"))
             )
@@ -201,4 +222,5 @@ class EventCreateSerializer(serializers.ModelSerializer):
             "is_featured",
             "is_featured_on_yandex_afisha",
             "event_type",
+            "city",
         ]
