@@ -82,6 +82,10 @@ class EventAdmin(admin.ModelAdmin):
     ordering = ["pk"]
     inlines = [EventPartsInline]  # TODO: если отключить, дублей sql-запросов не будет
 
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.select_related("city", "event_type", "specializations")
+
 
 @admin.register(EventPart)
 class EventPartAdmin(admin.ModelAdmin):
