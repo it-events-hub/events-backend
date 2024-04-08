@@ -11,7 +11,7 @@ class CharFilterInFilter(rf_filters.BaseInFilter, rf_filters.CharFilter):
     pass
 
 
-# TODO: прояснить ситуацию с фильтром по городу (place)
+# TODO: прояснить ситуацию с фильтром по городу (place, city, address)
 class EventsFilter(rf_filters.FilterSet):
     """
     Class for filtering events.

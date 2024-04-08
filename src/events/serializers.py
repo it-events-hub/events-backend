@@ -114,7 +114,7 @@ class EventPartSerializer(serializers.ModelSerializer):
 
 # TODO: сделать валидацию (метод validate в сериализаторе создания/редактирования нового
 # ивента), что если формат ивента офлайн или гибрид, то поле place обязательно для
-# заполнения
+# заполнения - решить это после того, как примут решение по полям city и address
 class EventSerializer(serializers.ModelSerializer):
     """Serializer for handling a list of events."""
 

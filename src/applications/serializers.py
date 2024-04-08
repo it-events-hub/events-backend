@@ -14,6 +14,7 @@ from .utils import (
     check_another_user_phone,
     check_another_user_telegram,
 )
+from api.loggers import logger
 from events.models import Event
 from users.models import Specialization, User
 from users.utils import check_birth_date
@@ -247,8 +248,9 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
             if isinstance(self.context["request"].user, User)
             else None
         )
+        event: Event = attrs["event"]
 
-        if attrs["event"].start_time < timezone.now():
+        if event.start_time < timezone.now():
             raise serializers.ValidationError(APPLICATION_EVENT_STARTTIME_ERROR)
 
         format_hybrid_required_error: str | None = (
@@ -256,8 +258,12 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
         )
         if format_hybrid_required_error:
             raise serializers.ValidationError(format_hybrid_required_error)
-        if attrs["event"].format != Event.FORMAT_HYBRID:  # TODO: add logging
-            attrs["format"] = attrs["event"].format
+        if event.format != Event.FORMAT_HYBRID:
+            attrs["format"] = event.format
+            logger.debug(
+                f"The format of application to event {event} has been changed to "
+                f"{event.format}"
+            )
         format_available_error: str | None = self.__class__.check_format_available(
             attrs
         )
