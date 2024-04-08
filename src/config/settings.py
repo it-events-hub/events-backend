@@ -33,10 +33,11 @@ MODE = os.getenv("MODE", default="prod")
 DOCKER = os.getenv("DOCKER", default="yes")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-if MODE == "dev":
-    DEBUG = True
-else:
-    DEBUG = False
+# if MODE == "dev":
+#     DEBUG = True
+# else:
+#     DEBUG = False
+DEBUG = True  # TODO: вернуть настройки дебага обратно, когда увидим ошибку
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", default="").split()
 
