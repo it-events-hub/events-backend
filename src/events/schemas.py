@@ -37,6 +37,16 @@ EVENT_LIST_FILTERS = [
         type=openapi.TYPE_INTEGER,
     ),
     openapi.Parameter(
+        "not_started",
+        openapi.IN_QUERY,
+        description=(
+            "Shows events that have not yet started. Takes True, False, 0 and 1 "
+            "as input values, otherwise returns all the events. Input example: "
+            "?not_started=True"
+        ),
+        type=openapi.TYPE_BOOLEAN,
+    ),
+    openapi.Parameter(
         "status",
         openapi.IN_QUERY,
         description=(
