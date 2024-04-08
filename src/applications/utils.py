@@ -39,6 +39,30 @@ NOTIFICATION_SETTINGS_APPLICATION_OF_USER_ERROR: str = (
 APPLICATION_EVENT_STARTTIME_ERROR: str = (
     "Подача заявки на участие в мероприятии, которое уже началось, не допускается."
 )
+APPLICATION_ACTIVITY_ANONYMOUS_ERROR: str = "Укажите компанию, должность и опыт."
+APPLICATION_ACTIVITY_AUTHORIZED_ERROR: str = (
+    "Укажите компанию, должность и опыт в заявке или в своем Личном кабинете перед "
+    "подачей заявки."
+)
+APPLICATION_FORMAT_REQUIRED_ERROR: str = (
+    "Если мероприятие имеет гибридный формат, в заявке обязательно должен быть указан "
+    "желаемый формат участия."
+)
+APPLICATION_SPECIALIZATIONS_REQUIRED_ERROR: str = (
+    "Укажите направления в заявке или в своем Личном кабинете перед подачей заявки."
+)
+APPLICATION_EVENT_CLOSED_ERROR: str = "Регистрация на мероприятие закрыта."
+APPLICATION_EVENT_OFFLINE_CLOSED_ERROR: str = (
+    "Регистрация на мероприятие в офлайн-формате закрыта, но принимаются заявки "
+    "на участие в мероприятии в онлайн-формате."
+)
+APPLICATION_EVENT_ONLINE_CLOSED_ERROR: str = (
+    "Регистрация на мероприятие в онлайн-формате закрыта, но принимаются заявки "
+    "на участие в мероприятии в офлайн-формате."
+)
+APPLICATION_USER_ALREADY_REGISTERED_ERROR: str = (
+    "Данный пользователь уже зарегистрирован на данное мероприятие."
+)
 
 
 def check_another_user_email(
