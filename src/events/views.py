@@ -10,6 +10,7 @@ from .models import Event
 from .schemas import EVENT_LIST_DESCRIPTION, EVENT_LIST_FILTERS, EVENT_LIST_RESPONSES
 from .serializers import EventCreateSerializer, EventSerializer
 from api.filters import EventsFilter
+from api.pagination import CustomPageNumberPagination
 
 
 # TODO: добавить в сериализаторы Event отображение количества поданных заявок
@@ -44,6 +45,7 @@ class EventViewSet(ModelViewSet):
     filterset_class = EventsFilter
     ordering_fields = ["start_time", "name"]
     ordering = ["pk"]
+    pagination_class = CustomPageNumberPagination
 
     def get_serializer_class(self):
         if self.action == "create":
