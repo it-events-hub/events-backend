@@ -22,6 +22,7 @@ class EventsFilter(rf_filters.FilterSet):
 
     The filter for the 'name' field works on case-insensitive partial occurrence.
     The 'is_deleted' filter takes boolean values - True/False.
+    The 'is_registrated' filter takes 0 as False and 1 as True.
     The 'status' and 'format' filters accept one/several comma-separated string values.
     The 'event_type' filter accepts one/several comma-separated slug values.
     The 'specializations' filter accepts one/several comma-separated slug values.
@@ -37,12 +38,14 @@ class EventsFilter(rf_filters.FilterSet):
     specializations = CharFilterInFilter(field_name="specializations__slug")
     start_date = rf_filters.DateTimeFilter(field_name="start_time", lookup_expr="gte")
     end_date = rf_filters.DateTimeFilter(field_name="start_time", lookup_expr="lte")
+    is_registrated = rf_filters.NumberFilter(method="event_boolean_methods")
 
     class Meta:
         model = Event
         fields = [
             "name",
             "is_deleted",
+            "is_registrated",
             "status",
             "format",
             "event_type",
@@ -68,3 +71,18 @@ class EventsFilter(rf_filters.FilterSet):
             )
             .order_by("-is_start")
         )
+
+    def event_boolean_methods(self, queryset, name, value):
+        """
+        Shows the authorized user whether this user has registered for the event.
+        Always shows all the events to anonymous user.
+        """
+        if value not in [0, 1]:
+            return queryset
+        user = self.request.user
+        if user.is_anonymous:
+            return queryset
+        event_ids = [obj.pk for obj in queryset if obj.is_registrated == value]
+        if event_ids:
+            return queryset.filter(pk__in=event_ids)
+        return queryset.none()

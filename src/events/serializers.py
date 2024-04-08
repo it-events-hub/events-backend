@@ -175,12 +175,11 @@ class EventSerializer(serializers.ModelSerializer):
         )
 
     def get_is_registrated(self, obj) -> bool:
-        """Shows the authorized user whether he has registered for this event."""
+        """Shows the authorized user whether this user has registered for the event."""
         request = self.context.get("request")
         if not request or request.user.is_anonymous:
             return False
         return obj.is_registrated
-        # return request.user.applications.filter(event=obj).exists()
 
 
 class EventCreateSerializer(serializers.ModelSerializer):

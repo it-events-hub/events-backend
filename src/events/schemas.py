@@ -27,6 +27,16 @@ EVENT_LIST_FILTERS = [
         type=openapi.TYPE_BOOLEAN,
     ),
     openapi.Parameter(
+        "is_registrated",
+        openapi.IN_QUERY,
+        description=(
+            "Shows the authorized user whether this user has registered for the event. "
+            "Always shows all the events to anonymous user. Takes 0 as False and "
+            "1 as True. Input examples: ?is_registrated=0, ?is_registrated=1"
+        ),
+        type=openapi.TYPE_INTEGER,
+    ),
+    openapi.Parameter(
         "status",
         openapi.IN_QUERY,
         description=(
