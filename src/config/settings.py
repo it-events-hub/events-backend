@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "drf_yasg",
     "djoser",
+    "django_filters",
 ]
 
 MIDDLEWARE = [
@@ -222,9 +223,7 @@ SWAGGER_SETTINGS = {
 # Querycount settings. See https://github.com/bradmontgomery/django-querycount
 # DISPLAY_DUPLICATES - how many duplicated queries to display (None or integer)
 
-QUERYCOUNT = {
-    "DISPLAY_DUPLICATES": None,
-}
+QUERYCOUNT = {"DISPLAY_DUPLICATES": None}
 
 # CORS settings for frontend development
 
