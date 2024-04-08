@@ -20,6 +20,7 @@ django-filter = "^24.2"
 djoser = "^2.2.2"
 gunicorn = "^21.2.0"
 psycopg2-binary = "^2.9.9"
+django-querycount = "^0.8.3"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -29,7 +30,6 @@ flake8-broken-line = "^1.0.0"
 flake8-return = "^1.2.0"
 flake8-isort = "^6.1.1"
 black = "^24.3.0"
-django-querycount = "^0.8.3"
 
 [build-system]
 requires = ["poetry-core"]

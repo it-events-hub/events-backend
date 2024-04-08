@@ -27,6 +27,26 @@ EVENT_LIST_FILTERS = [
         type=openapi.TYPE_BOOLEAN,
     ),
     openapi.Parameter(
+        "is_registrated",
+        openapi.IN_QUERY,
+        description=(
+            "Shows the authorized user whether this user has registered for the event. "
+            "Always shows all the events to anonymous user. Takes 0 as False and "
+            "1 as True. Input examples: ?is_registrated=0, ?is_registrated=1"
+        ),
+        type=openapi.TYPE_INTEGER,
+    ),
+    openapi.Parameter(
+        "not_started",
+        openapi.IN_QUERY,
+        description=(
+            "Shows events that have not yet started. Takes True, False, 0 and 1 "
+            "as input values, otherwise returns all the events. Input example: "
+            "?not_started=True"
+        ),
+        type=openapi.TYPE_BOOLEAN,
+    ),
+    openapi.Parameter(
         "status",
         openapi.IN_QUERY,
         description=(
@@ -103,5 +123,15 @@ EVENT_LIST_FILTERS = [
         ),
         type=openapi.TYPE_STRING,
         format=openapi.FORMAT_DATETIME,
+    ),
+    openapi.Parameter(
+        "ordering",
+        openapi.IN_QUERY,
+        description=(
+            "Which field to use when ordering the results. You can sort objects by "
+            "id (default), start_time (start_time chronological order) and name "
+            "(alphabetical order). Input examples: ?ordering=start_time, ?ordering=name"
+        ),
+        type=openapi.TYPE_STRING,
     ),
 ]

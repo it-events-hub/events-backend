@@ -1,4 +1,5 @@
 from django.db.models import BooleanField, ExpressionWrapper, Q
+from django.utils import timezone
 from django_filters import rest_framework as rf_filters
 
 from events.models import Event
@@ -10,17 +11,16 @@ class CharFilterInFilter(rf_filters.BaseInFilter, rf_filters.CharFilter):
     pass
 
 
-# TODO: прояснить ситуацию с фильтром по городу (place)
-# TODO: сделать фильтр, началось ли событие (мы не должны базово показывать прошедшие
-# события на странице Афиши, если на календаре не отмечен особый промежуток времени)
-# TODO: сделать фильтр, показывающий авторизованному, регался ли он на ивент (по типу
-# фильтра is_favorited)
+# TODO: прояснить ситуацию с фильтром по городу (place, city, address)
 class EventsFilter(rf_filters.FilterSet):
     """
     Class for filtering events.
 
     The filter for the 'name' field works on case-insensitive partial occurrence.
     The 'is_deleted' filter takes boolean values - True/False.
+    The 'is_registrated' filter takes 0 as False and 1 as True.
+    The 'not_started' filter takes True, False, 0 and 1 as value, otherwise
+    returns all the events.
     The 'status' and 'format' filters accept one/several comma-separated string values.
     The 'event_type' filter accepts one/several comma-separated slug values.
     The 'specializations' filter accepts one/several comma-separated slug values.
@@ -36,12 +36,18 @@ class EventsFilter(rf_filters.FilterSet):
     specializations = CharFilterInFilter(field_name="specializations__slug")
     start_date = rf_filters.DateTimeFilter(field_name="start_time", lookup_expr="gte")
     end_date = rf_filters.DateTimeFilter(field_name="start_time", lookup_expr="lte")
+    is_registrated = rf_filters.NumberFilter(
+        method="is_registrated_to_event_boolean_method"
+    )
+    not_started = rf_filters.BooleanFilter(method="event_not_started")
 
     class Meta:
         model = Event
         fields = [
             "name",
             "is_deleted",
+            "is_registrated",
+            "not_started",
             "status",
             "format",
             "event_type",
@@ -67,3 +73,30 @@ class EventsFilter(rf_filters.FilterSet):
             )
             .order_by("-is_start")
         )
+
+    def is_registrated_to_event_boolean_method(self, queryset, name, value):
+        """
+        Shows the authorized user whether this user has registered for the event.
+        Always shows all the events to anonymous user.
+        """
+        if value not in [0, 1]:
+            return queryset
+        user = self.request.user
+        if user.is_anonymous:
+            return queryset
+        event_ids = [obj.pk for obj in queryset if obj.is_registrated == value]
+        if event_ids:
+            return queryset.filter(pk__in=event_ids)
+        return queryset.none()
+
+    def event_not_started(self, queryset, name, value):
+        """
+        Shows events that have not yet started.
+        Takes True, False, 0 and 1 as value, otherwise returns all the events.
+        """
+        if value in [True, False]:
+            now = timezone.now()
+            if value:
+                return queryset.filter(start_time__gt=now)
+            return queryset.filter(start_time__lte=now)
+        return queryset

@@ -108,7 +108,6 @@ class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
             >= event.participant_online_limit
         )
 
-    # TODO: add logging
     @staticmethod
     def check_event_limits_and_close_registration(event: Event) -> None:
         """
@@ -116,8 +115,16 @@ class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
         """
         if ApplicationViewSet.check_hybrid_event_offline_limit(event):
             event.status = Event.STATUS_OFFLINE_CLOSED
+            logger.debug(
+                f"The status of event {event} was changed to "
+                f"{Event.STATUS_OFFLINE_CLOSED}"
+            )
         elif ApplicationViewSet.check_hybrid_event_online_limit(event):
             event.status = Event.STATUS_ONLINE_CLOSED
+            logger.debug(
+                f"The status of event {event} was changed to "
+                f"{Event.STATUS_ONLINE_CLOSED}"
+            )
         elif (
             ApplicationViewSet.check_offline_event_limit(event)
             or ApplicationViewSet.check_online_event_limit(event)
@@ -131,6 +138,9 @@ class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
             )
         ):
             event.status = Event.STATUS_CLOSED
+            logger.debug(
+                f"The status of event {event} was changed to {Event.STATUS_CLOSED}"
+            )
         event.save()
 
     def perform_create(self, serializer):
@@ -149,7 +159,7 @@ class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
             ApplicationViewSet.update_authenticated_user_personal_data(
                 user, serializer.validated_data
             )
-            serializer.save(  # TODO: add logging (autocompletion of fields)
+            serializer.save(
                 user=user,
                 first_name=user.first_name,
                 last_name=user.last_name,
@@ -163,6 +173,12 @@ class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
                 position=user.position,
                 experience_years=user.experience_years,
                 specializations=user.specializations.all(),
+            )
+            event = serializer.validated_data["event"]
+            logger.debug(
+                f"The fields of the application submitted by an authorized user {user} "
+                f"to participate in the event {event} were automatically filled in "
+                "based on profile data"
             )
         else:
             serializer.save()
@@ -210,13 +226,20 @@ class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
     # - DONE заявка была онлайн, тогда меняем статус ивента на "регистрация открыта"
     # - заявка была офлайн, тогда не меняем статус ивента
 
-    # TODO: add docstring
     # TODO: add logging (event status changes)
     def perform_destroy(self, instance):
-        """"""
+        """
+        Deletes the application for participation in the event and re-opens
+        registration for the event, if required.
+        """
         event = instance.event
         application_format = instance.format
         instance.delete()
+        logger.debug(
+            f"The application of user {self.request.user} to participate "
+            f"in event {event} was deleted."
+        )
+
         if event.format != Event.FORMAT_HYBRID and event.status == Event.STATUS_CLOSED:
             event.status = Event.STATUS_OPEN
         if (

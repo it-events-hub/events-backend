@@ -10,18 +10,16 @@ from .models import Event
 from .schemas import EVENT_LIST_DESCRIPTION, EVENT_LIST_FILTERS, EVENT_LIST_RESPONSES
 from .serializers import EventCreateSerializer, EventSerializer
 from api.filters import EventsFilter
+from api.pagination import CustomPageNumberPagination
 
 
 # TODO: добавить в сериализаторы Event отображение количества поданных заявок
 # (онлайн и офлайн), в Админку тоже можно добавить
-# TODO: добавить фильтрацию, разграничить доступ, добавить пагинацию (всегда 6 объектов)
+# TODO: добавить permission_classes
 # TODO: сделать новый эндпойнт (@action) для показа авторизованному юзеру 3 персональных
 # рекомнендаций, если у него в ЛК нет направлений, то 3 ближайших, если есть
 # направления, то 3 ближайших с этими направлениями, если он будет показывать те же
 # ивенты, что и основной эндпойнт Афиши, это не страшно
-# TODO: если фильтр по датам не применен, то показывать только еще не начавшиеся
-# ивенты, наверху самые ранние, ниже более поздние, а если применен фильтр по датам, то
-# тоже хронологический порядок - наверху более ранние, ниже - более поздние
 @method_decorator(
     name="list",
     decorator=swagger_auto_schema(
@@ -42,8 +40,9 @@ class EventViewSet(ModelViewSet):
     serializer_class = EventSerializer
     filter_backends = [rf_filters.DjangoFilterBackend, OrderingFilter]  #
     filterset_class = EventsFilter
-    ordering_fields = ["start_time"]
+    ordering_fields = ["start_time", "name"]
     ordering = ["pk"]
+    pagination_class = CustomPageNumberPagination
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -51,7 +50,9 @@ class EventViewSet(ModelViewSet):
         return EventSerializer
 
     def get_queryset(self):
-        return EventSerializer.setup_eager_loading(Event.objects.all())
+        return EventSerializer.setup_eager_loading(
+            Event.objects.all(), user=self.request.user
+        )
 
     @action(
         detail=True,

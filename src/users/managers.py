@@ -1,6 +1,7 @@
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.hashers import make_password
 
+# TODO: move to users.utils
 SUPERUSER_FIELDS_ERROR = (
     "Суперпользователь должен иметь is_staff=True, is_superuser=True и is_active=True."
 )
