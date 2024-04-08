@@ -1,7 +1,8 @@
-from django.db.models import Prefetch
+from django.db.models import Exists, OuterRef, Prefetch
 from rest_framework import serializers
 
 from .models import Event, EventPart, EventType, Speaker
+from applications.models import Application
 from users.models import Specialization
 
 
@@ -120,6 +121,7 @@ class EventSerializer(serializers.ModelSerializer):
     event_type = EventTypeSerializer(read_only=True)
     specializations = SpecializationSerializer(read_only=True)
     event_parts = EventPartSerializer(many=True, source="parts")
+    is_registrated = serializers.SerializerMethodField()
 
     # поменяла порядок полей, чтобы название ивента было выше, а вложенные объекты ниже
     class Meta:
@@ -128,6 +130,7 @@ class EventSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "is_deleted",
+            "is_registrated",
             "organization",
             "description",
             "status",
@@ -151,13 +154,33 @@ class EventSerializer(serializers.ModelSerializer):
         ]
 
     @classmethod
-    def setup_eager_loading(cls, queryset):
+    def setup_eager_loading(cls, queryset, user):
         """Performs necessary eager loading of events."""
-        return queryset.select_related(
-            "event_type", "specializations"
-        ).prefetch_related(
-            Prefetch("parts", queryset=EventPart.objects.select_related("speaker"))
+        if user.is_anonymous:
+            return queryset.select_related(
+                "event_type", "specializations"
+            ).prefetch_related(
+                Prefetch("parts", queryset=EventPart.objects.select_related("speaker"))
+            )
+        return (
+            queryset.select_related("event_type", "specializations")
+            .prefetch_related(
+                Prefetch("parts", queryset=EventPart.objects.select_related("speaker"))
+            )
+            .annotate(
+                is_registrated=Exists(
+                    Application.objects.filter(user=user, event=OuterRef("id"))
+                )
+            )
         )
+
+    def get_is_registrated(self, obj) -> bool:
+        """Shows the authorized user whether he has registered for this event."""
+        request = self.context.get("request")
+        if not request or request.user.is_anonymous:
+            return False
+        return obj.is_registrated
+        # return request.user.applications.filter(event=obj).exists()
 
 
 class EventCreateSerializer(serializers.ModelSerializer):

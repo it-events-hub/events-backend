@@ -51,7 +51,9 @@ class EventViewSet(ModelViewSet):
         return EventSerializer
 
     def get_queryset(self):
-        return EventSerializer.setup_eager_loading(Event.objects.all())
+        return EventSerializer.setup_eager_loading(
+            Event.objects.all(), user=self.request.user
+        )
 
     @action(
         detail=True,

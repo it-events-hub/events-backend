@@ -14,7 +14,8 @@ class CharFilterInFilter(rf_filters.BaseInFilter, rf_filters.CharFilter):
 # TODO: сделать фильтр, началось ли событие (мы не должны базово показывать прошедшие
 # события на странице Афиши, если на календаре не отмечен особый промежуток времени)
 # TODO: сделать фильтр, показывающий авторизованному, регался ли он на ивент (по типу
-# фильтра is_favorited)
+# фильтра is_favorited) - это и boolean-фильтр, и еще одно кастомное boolean-поле
+# сериализатора для GET-запросов ивентов
 class EventsFilter(rf_filters.FilterSet):
     """
     Class for filtering events.
