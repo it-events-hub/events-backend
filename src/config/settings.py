@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_standardized_errors",
     "corsheaders",
+    "django_filters",
     "drf_yasg",
     "djoser",
 ]
