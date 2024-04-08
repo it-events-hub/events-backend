@@ -42,7 +42,7 @@ class EventViewSet(ModelViewSet):
     serializer_class = EventSerializer
     filter_backends = [rf_filters.DjangoFilterBackend, OrderingFilter]  #
     filterset_class = EventsFilter
-    ordering_fields = ["start_time"]
+    ordering_fields = ["start_time", "name"]
     ordering = ["pk"]
 
     def get_serializer_class(self):

@@ -104,4 +104,14 @@ EVENT_LIST_FILTERS = [
         type=openapi.TYPE_STRING,
         format=openapi.FORMAT_DATETIME,
     ),
+    openapi.Parameter(
+        "ordering",
+        openapi.IN_QUERY,
+        description=(
+            "Which field to use when ordering the results. You can sort objects by "
+            "id (default), start_time (start_time chronological order) and name "
+            "(alphabetical order). Input examples: ?ordering=start_time, ?ordering=name"
+        ),
+        type=openapi.TYPE_STRING,
+    ),
 ]
