@@ -1,18 +1,25 @@
 from http import HTTPStatus
 
-from django.contrib.auth import logout, update_session_auth_hash
+from django.contrib.auth import logout, update_session_auth_hash, login
+from django.contrib.auth.tokens import default_token_generator
+from django.core.exceptions import ObjectDoesNotExist
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode
 from django.utils.timezone import now
-from djoser import compat, signals
-from djoser.conf import settings
-from djoser.serializers import UserCreateSerializer
+from djoser import compat, email
+from djoser.conf import settings as djoser_settings
+from djoser.serializers import UserCreateSerializer, ActivationSerializer
 from rest_framework.decorators import action
 from rest_framework.mixins import CreateModelMixin, ListModelMixin
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
+from .email import Email
 from .models import User
 from .serializers import UserSerializer
+
+from config import settings
 
 
 class UserModelViewSet(
@@ -22,20 +29,55 @@ class UserModelViewSet(
 ):
     queryset = User.objects.all()
 
-    def get_permissions(self):
-        if self.action == "create":
-            self.permission_classes = (AllowAny,)
-        else:
-            self.permission_classes = (IsAuthenticated,)
-        return super().get_permissions()
-
     def get_serializer_class(self):
+        """Select serializer as required."""
         if self.action == "create":
             return UserCreateSerializer
+        elif self.action == "activation":
+            return ActivationSerializer
         return UserSerializer
 
     def perform_create(self, serializer) -> None:
-        serializer.save(email=self.request.data["email"])
+        """Create user and send activation email."""
+        user_email = self.request.data["email"]
+        serializer.save(email=user_email)
+
+        user = User.objects.get(email=user_email)
+        context = {"user": user}
+        email.ActivationEmail(self.request, context).send([user_email])
+
+    @action(
+        methods=["post"],
+        detail=False,
+    )
+    def resend_activation(self, request) -> Response:
+        user = request.user
+        if not user.is_active:
+            email.ActivationEmail(
+                self.request,
+                {"user": user},
+            ).send([user.email])
+        return Response(status=HTTPStatus.NO_CONTENT)
+
+    @action(
+        methods=["get"],
+        detail=False,
+        url_path="activation/<uid>/<token>",
+        permission_classes=(AllowAny,),
+    )
+    def activation(self, request, uid=None, token=None) -> Response:
+        """Activate user by email link"""
+        try:
+            decoded_uid = force_str(urlsafe_base64_decode(uid))
+            user = User.objects.get(pk=decoded_uid)
+        except ObjectDoesNotExist:
+            user = None
+        if user and default_token_generator.check_token(user, token):
+            user.is_active = True
+            user.save()
+            login(request, user)
+            return Response(status=HTTPStatus.OK)
+        return Response(status=HTTPStatus.UNAUTHORIZED)
 
     @action(
         methods=["get"],
@@ -43,10 +85,12 @@ class UserModelViewSet(
         permission_classes=(IsAuthenticated,),  # TODO: Set permissions
     )
     def me(self, request) -> Response:
-        return Response(self.get_serializer(request.user))
+        """Show user's self data."""
+        return Response(self.get_serializer(request.user).data)
 
     @me.mapping.delete
     def del_me(self, request) -> Response:
+        """Self-removal of current user."""
         user = request.user
         logout(request)
         user.delete()
@@ -54,57 +98,13 @@ class UserModelViewSet(
 
     @me.mapping.patch
     def patch_me(self, request) -> Response:
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data)
+        """Update current user's data."""
+        breakpoint()
+        instance = request.user
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
-
-
-class ActivationViewSet(GenericViewSet):
-    queryset = User.objects.all()
-
-    def get_serializer_class(self):
-        if self.action == "activation":
-            return settings.SERIALIZERS.activation
-        if self.action == "resend_activation":
-            return settings.SERIALIZERS.password_reset
-        return None
-
-    @action(["post"], detail=False)
-    def activation(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.user
-        user.is_active = True
-        user.save()
-
-        signals.user_activated.send(
-            sender=self.__class__, user=user, request=self.request
-        )
-
-        if settings.SEND_CONFIRMATION_EMAIL:
-            context = {"user": user}
-            to = [compat.get_user_email(user)]
-            settings.EMAIL.confirmation(self.request, context).send(to)
-
-        return Response(status=HTTPStatus.NO_CONTENT)
-
-    @action(["post"], detail=False)
-    def resend_activation(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.get_user(is_active=False)
-
-        if not settings.SEND_ACTIVATION_EMAIL:
-            return Response(status=HTTPStatus.BAD_REQUEST)
-
-        if user:
-            context = {"user": user}
-            to = [compat.get_user_email(user)]
-            settings.EMAIL.activation(self.request, context).send(to)
-
-        return Response(status=HTTPStatus.NO_CONTENT)
 
 
 class PasswordViewSet(GenericViewSet):
@@ -112,15 +112,15 @@ class PasswordViewSet(GenericViewSet):
 
     def get_serializer_class(self):
         if self.action == "reset_password":
-            return settings.SERIALIZERS.password_reset
+            return djoser_settings.SERIALIZERS.password_reset
         if self.action == "reset_password_confirm":
-            if settings.PASSWORD_RESET_CONFIRM_RETYPE:
-                return settings.SERIALIZERS.password_reset_confirm_retype
-            return settings.SERIALIZERS.password_reset_confirm
+            if djoser_settings.PASSWORD_RESET_CONFIRM_RETYPE:
+                return djoser_settings.SERIALIZERS.password_reset_confirm_retype
+            return djoser_settings.SERIALIZERS.password_reset_confirm
         if self.action == "set_password":
-            if settings.SET_PASSWORD_RETYPE:
-                return settings.SERIALIZERS.set_password_retype
-            return settings.SERIALIZERS.set_password
+            if djoser_settings.SET_PASSWORD_RETYPE:
+                return djoser_settings.SERIALIZERS.set_password_retype
+            return djoser_settings.SERIALIZERS.set_password
         return None
 
     @action(["post"], detail=False)
@@ -131,14 +131,14 @@ class PasswordViewSet(GenericViewSet):
         self.request.user.set_password(serializer.data["new_password"])
         self.request.user.save()
 
-        if settings.PASSWORD_CHANGED_EMAIL_CONFIRMATION:
+        if djoser_settings.PASSWORD_CHANGED_EMAIL_CONFIRMATION:
             context = {"user": self.request.user}
             to = [compat.get_user_email(self.request.user)]
-            settings.EMAIL.password_changed_confirmation(self.request, context).send(to)
+            djoser_settings.EMAIL.password_changed_confirmation(self.request, context).send(to)
 
-        if settings.LOGOUT_ON_PASSWORD_CHANGE:
+        if djoser_settings.LOGOUT_ON_PASSWORD_CHANGE:
             logout(self.request)
-        elif settings.CREATE_SESSION_ON_LOGIN:
+        elif djoser_settings.CREATE_SESSION_ON_LOGIN:
             update_session_auth_hash(self.request, self.request.user)
         return Response(status=HTTPStatus.NO_CONTENT)
 
@@ -151,7 +151,7 @@ class PasswordViewSet(GenericViewSet):
         if user:
             context = {"user": user}
             to = [compat.get_user_email(user)]
-            settings.EMAIL.password_reset(self.request, context).send(to)
+            djoser_settings.EMAIL.password_reset(self.request, context).send(to)
 
         return Response(status=HTTPStatus.NO_CONTENT)
 
@@ -165,8 +165,8 @@ class PasswordViewSet(GenericViewSet):
             serializer.user.last_login = now()
         serializer.user.save()
 
-        if settings.PASSWORD_CHANGED_EMAIL_CONFIRMATION:
+        if djoser_settings.PASSWORD_CHANGED_EMAIL_CONFIRMATION:
             context = {"user": serializer.user}
             to = [compat.get_user_email(serializer.user)]
-            settings.EMAIL.password_changed_confirmation(self.request, context).send(to)
+            djoser_settings.EMAIL.password_changed_confirmation(self.request, context).send(to)
         return Response(status=HTTPStatus.NO_CONTENT)

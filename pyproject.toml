@@ -18,6 +18,7 @@ django-cors-headers = "^4.3.1"
 drf-yasg = "^1.21.7"
 django-filter = "^24.2"
 djoser = "^2.2.2"
+django-templated-mail = "^1.1.1"
 
 
 [tool.poetry.group.dev.dependencies]

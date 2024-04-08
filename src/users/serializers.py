@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 from rest_framework import serializers
 
 from .models import Specialization, User
@@ -16,10 +18,11 @@ class PasswordSerializer(serializers.ModelSerializer):
 
 
 class SpecializationSerializer(serializers.ModelSerializer):
+    slug = serializers.SlugField()
 
     class Meta:
         model = Specialization
-        fields = "__all__"
+        fields = ("name", "slug")
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -45,48 +48,44 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "email")
 
     def update(self, instance: User, validated_data: dict) -> User:
-        # instance.first_name = validated_data.get(
-        #     'first_name',
-        #     instance.first_name,
-        # )
-        # instance.last_name = validated_data.get(
-        #     'last_name',
-        #     instance.last_name,
-        # )
-        # instance.phone = validated_data.get(
-        #     'phone',
-        #     instance.phone,
-        # )
-        # instance.telegram = validated_data.get(
-        #     'telegram',
-        #     instance.telegram,
-        # )
-        # instance.birth_date = validated_data.get(
-        #     'birth_date',
-        #     instance.birth_date,
-        # )
-        # TODO: Massively test/debug this
-        for field in instance._meta.get_fields():
-            if field.name in [
+        breakpoint()
+        for item in validated_data.items():
+            if item[0] in [
                 "specializations",
                 "id",
                 "email",
             ]:
                 continue
-            instance.field = validated_data.get(
-                field.name,
-                field.value,
-            )
+            instance.__dict__[item[0]] = item[1]
+        instance.save()
 
-        specializations: dict = validated_data.pop('specializations')
-        User.specializations.through.filter(user=instance).delete()  # TODO: wtf?!
-        specs = [
-            User.specializations.through(
-                user=instance,
-                specialization=spec,
-            )
-            for spec in specializations
-        ]
-        User.specializations.through.bulk_create(specs)
+        if "specializations" in validated_data:
+            breakpoint()
+            specializations: dict = validated_data.pop("specializations")
+            User.specializations.through.filter(user=instance).delete()
+            specs = [
+                User.specializations.through(
+                    user=instance,
+                    specialization=spec,
+                )
+                for spec in specializations
+            ]
+            User.specializations.through.bulk_create(specs)
 
         return instance
+
+    def validate_specializations(self, value: list) -> list:
+        if not value:
+            raise serializers.ValidationError(
+                "Поле \"Направление\" обязательно к заполнению",
+                code=HTTPStatus.BAD_REQUEST,
+            )
+
+        spec_ids = {s.id for s in value}
+        if len(spec_ids) != len(value):
+            raise serializers.ValidationError(
+                "Повтор направления",
+                code=HTTPStatus.BAD_REQUEST,
+            )
+
+        return value
