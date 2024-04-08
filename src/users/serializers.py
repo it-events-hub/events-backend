@@ -4,17 +4,16 @@ from rest_framework import serializers
 
 from .models import Specialization, User
 
-
-class PasswordSerializer(serializers.ModelSerializer):
-    new_password = serializers.CharField(required=True)
-    old_password = serializers.CharField(required=True)
-
-    class Meta:
-        model = User
-        fields = (
-            "new_password",
-            "old_password",
-        )
+# class PasswordSerializer(serializers.ModelSerializer):
+#     new_password = serializers.CharField(required=True)
+#     old_password = serializers.CharField(required=True)
+#
+#     class Meta:
+#         model = User
+#         fields = (
+#             "new_password",
+#             "old_password",
+#         )
 
 
 class SpecializationSerializer(serializers.ModelSerializer):
@@ -77,7 +76,7 @@ class UserSerializer(serializers.ModelSerializer):
     def validate_specializations(self, value: list) -> list:
         if not value:
             raise serializers.ValidationError(
-                "Поле \"Направление\" обязательно к заполнению",
+                'Поле "Направление" обязательно к заполнению',
                 code=HTTPStatus.BAD_REQUEST,
             )
 

@@ -5,11 +5,7 @@ from rest_framework import permissions
 from rest_framework.routers import DefaultRouter
 
 from applications.views import ApplicationCreateAPIView
-from users.views import (
-    PasswordViewSet,
-    UserModelViewSet,
-)
-
+from users.views import PasswordViewSet, UserModelViewSet
 
 app_name = "api"
 

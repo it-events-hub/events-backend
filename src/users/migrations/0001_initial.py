@@ -2,8 +2,9 @@
 
 import django.core.validators
 import django.utils.timezone
-import users.managers
 from django.db import migrations, models
+
+import users.managers
 
 
 class Migration(migrations.Migration):
