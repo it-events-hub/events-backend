@@ -11,7 +11,6 @@ class CharFilterInFilter(rf_filters.BaseInFilter, rf_filters.CharFilter):
     pass
 
 
-# TODO: прояснить ситуацию с фильтром по городу (place, city, address)
 class EventsFilter(rf_filters.FilterSet):
     """
     Class for filtering events.
@@ -24,6 +23,7 @@ class EventsFilter(rf_filters.FilterSet):
     The 'status' and 'format' filters accept one/several comma-separated string values.
     The 'event_type' filter accepts one/several comma-separated slug values.
     The 'specializations' filter accepts one/several comma-separated slug values.
+    The 'city' filter accepts one/several comma-separated slug values.
     The 'start_date' and 'end_date' filters take datetime string
     (input examples: "2020-01-01", "2024-03-04T16:20:55") as input and compare it
     to the value of the 'start_time' field of each event.
@@ -34,6 +34,7 @@ class EventsFilter(rf_filters.FilterSet):
     format = CharFilterInFilter()
     event_type = CharFilterInFilter(field_name="event_type__slug")
     specializations = CharFilterInFilter(field_name="specializations__slug")
+    city = CharFilterInFilter(field_name="city__slug")
     start_date = rf_filters.DateTimeFilter(field_name="start_time", lookup_expr="gte")
     end_date = rf_filters.DateTimeFilter(field_name="start_time", lookup_expr="lte")
     is_registrated = rf_filters.NumberFilter(
@@ -52,6 +53,7 @@ class EventsFilter(rf_filters.FilterSet):
             "format",
             "event_type",
             "specializations",
+            "city",
             "start_date",
             "end_date",
         ]

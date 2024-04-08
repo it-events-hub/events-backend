@@ -105,6 +105,16 @@ EVENT_LIST_FILTERS = [
         format=openapi.FORMAT_SLUG,
     ),
     openapi.Parameter(
+        "city",
+        openapi.IN_QUERY,
+        description=(
+            "filtering by event cities, filter accepts one or several "
+            "comma-separated slug values, input example: ?city=moscow,kazan"
+        ),
+        type=openapi.TYPE_STRING,
+        format=openapi.FORMAT_SLUG,
+    ),
+    openapi.Parameter(
         "start_date",
         openapi.IN_QUERY,
         description=(

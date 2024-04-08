@@ -33,11 +33,10 @@ MODE = os.getenv("MODE", default="prod")
 DOCKER = os.getenv("DOCKER", default="yes")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# if MODE == "dev":
-#     DEBUG = True
-# else:
-#     DEBUG = False
-DEBUG = True  # TODO: вернуть настройки дебага обратно, когда увидим ошибку
+if MODE == "dev":
+    DEBUG = True
+else:
+    DEBUG = False
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", default="").split()
 
@@ -67,9 +66,9 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_standardized_errors",
     "corsheaders",
-    "django_filters",
     "drf_yasg",
     "djoser",
+    "django_filters",
 ]
 
 MIDDLEWARE = [

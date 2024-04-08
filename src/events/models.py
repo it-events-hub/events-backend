@@ -21,6 +21,20 @@ class EventType(models.Model):
         return self.name
 
 
+class City(models.Model):
+    """Model for cities of events."""
+
+    name = models.CharField("Название", max_length=40, unique=True)
+    slug = models.SlugField("Слаг", max_length=40, unique=True)
+
+    class Meta:
+        verbose_name = "Город"
+        verbose_name_plural = "Города"
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class Speaker(models.Model):
     """Model for speakers."""
 
@@ -81,6 +95,14 @@ class Event(models.Model):
     start_time = models.DateTimeField("Время начала")
     end_time = models.DateTimeField("Время окончания", blank=True, null=True)
     cost = models.FloatField("Стоимость", default=0, validators=[MinValueValidator(0)])
+    city = models.ForeignKey(
+        City,
+        related_name="events",
+        on_delete=models.CASCADE,
+        verbose_name="Город",
+        blank=True,
+        null=True,
+    )
     place = models.TextField("Место", blank=True)
     event_type = models.ForeignKey(
         EventType, related_name="events", on_delete=models.CASCADE, verbose_name="Тип"
