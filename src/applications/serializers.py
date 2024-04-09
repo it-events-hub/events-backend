@@ -1,46 +1,32 @@
+from typing import Any
+
+from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 from rest_framework import serializers
+from rest_framework.serializers import ValidationError
 
 from .models import Application, NotificationSettings
 from .utils import (
+    APPLICATION_ACTIVITY_ANONYMOUS_ERROR,
+    APPLICATION_ACTIVITY_AUTHORIZED_ERROR,
+    APPLICATION_EVENT_CLOSED_ERROR,
     APPLICATION_EVENT_EMAIL_UNIQUE_ERROR,
+    APPLICATION_EVENT_OFFLINE_CLOSED_ERROR,
+    APPLICATION_EVENT_ONLINE_CLOSED_ERROR,
     APPLICATION_EVENT_PHONE_UNIQUE_ERROR,
+    APPLICATION_EVENT_STARTTIME_ERROR,
     APPLICATION_EVENT_TELEGRAM_UNIQUE_ERROR,
+    APPLICATION_FORMAT_REQUIRED_ERROR,
+    APPLICATION_SPECIALIZATIONS_REQUIRED_ERROR,
+    APPLICATION_USER_ALREADY_REGISTERED_ERROR,
     check_another_user_email,
     check_another_user_phone,
     check_another_user_telegram,
 )
+from api.loggers import logger
 from events.models import Event
 from users.models import Specialization, User
 from users.utils import check_birth_date
-
-APPLICATION_FORMAT_REQUIRED_ERROR: str = (
-    "Если мероприятие имеет гибридный формат, в заявке обязательно должен быть указан "
-    "желаемый формат участия."
-)
-
-# TODO: у ивента есть participant_offline_limit и participant_online_limit, если
-# достигнут один из этих лимитов (и ивент гибридного формата), как нам закрывать
-# регистрацию для одного формата, но оставить ее для второго формата, лимит по которому
-# не достигнут?
-# Как вариант, добавить ивентам еще два статуса (регистрация онлайн закрыта, регистрация
-# офлайн закрыта).
-# Еще вариант: при создании заявки (если регистрация еще открыта) проверять оба лимита,
-# если по нужному нам формату участия лимит достигнут, то не создавать заявку и кидать
-# ошибку (например, 'Офлайн места закончились, зарегистрируйтесь онлайн', и наоборот),
-# а если при проверке выяснится, что оба лимита достигнуты, то автоматически менять
-# статус ивента на 'регистрация закрыта'
-
-# TODO: У авторизованного нужно проверять, что заполнено specializations в ЛК
-# либо кидать ошибку валидации (просить заполнить в ЛК или указать в заявке).
-# А в activity у него сразу после регистрации будет значение по дефолту - работаю,
-# но он его может поменять в ЛК. Если у него activity=работаю, то просим при подаче
-# заявки указать место, должность и число лет опыта (валидация на уровне апи).
-
-# TODO: # если activity=working, то в заявке поля company, position, experience_years
-# становятся обязательными для анонима. Если у авторизованного activity=working, а в ЛК
-# и в самой заявке не указаны company, position, experience_years, то тоже просим его их
-# заполнить в заявке или в ЛК (не создаем ему заявку, пока он их не заполнит)
 
 
 class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
@@ -79,74 +65,205 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
         """Validates birth date."""
         birth_date_error: str | None = check_birth_date(value)
         if birth_date_error:
-            raise serializers.ValidationError(birth_date_error)
+            raise ValidationError(birth_date_error)
         return value
 
-    # TODO: refactoring вынести проверки в отдельные функции, а отсюда их вызывать
-    def validate(self, attrs):
+    def validate_application_event_start_time(
+        self, event: Event
+    ) -> ValidationError | None:
+        """
+        Checks that the application has not been submitted for an event
+        that has already started.
+        """
+        if event.start_time < timezone.now():
+            raise ValidationError(APPLICATION_EVENT_STARTTIME_ERROR)
+
+    def validate_application_format(
+        self, event: Event, attrs: dict[str, Any]
+    ) -> ValidationError | None:
         """
         Checks that attrs include a format field if the event has a hybrid format.
         Replaces the format with the correct one if the event has a strict format.
-        Checks email, phone, telegram.
+        Checks that registration for the event is open for the format
+        specified in the application.
         """
-        # format check and replacement
         if attrs["event"].format == Event.FORMAT_HYBRID and not attrs.get("format"):
-            raise serializers.ValidationError(APPLICATION_FORMAT_REQUIRED_ERROR)
-        if attrs["event"].format != Event.FORMAT_HYBRID:
-            attrs["format"] = attrs["event"].format
+            raise ValidationError(APPLICATION_FORMAT_REQUIRED_ERROR)
 
-        # git user for email, phone and telegram checks
+        if event.format != Event.FORMAT_HYBRID:
+            attrs["format"] = event.format
+            logger.debug(
+                f"The format of application to event {event} has been changed to "
+                f"{event.format}"
+            )
+
+        if attrs["event"].status == Event.STATUS_CLOSED:
+            raise ValidationError(APPLICATION_EVENT_CLOSED_ERROR)
+        if (
+            attrs["event"].status == Event.STATUS_OFFLINE_CLOSED
+            and attrs["format"] == Event.FORMAT_OFFLINE
+        ):
+            raise ValidationError(APPLICATION_EVENT_OFFLINE_CLOSED_ERROR)
+        if (
+            attrs["event"].status == Event.STATUS_ONLINE_CLOSED
+            and attrs["format"] == Event.FORMAT_ONLINE
+        ):
+            raise ValidationError(APPLICATION_EVENT_ONLINE_CLOSED_ERROR)
+
+    def validate_application_user(
+        self, user: SimpleLazyObject | None, event: Event
+    ) -> ValidationError | None:
+        """Checks that the user has not registered twice for the same event."""
+        if user.applications.filter(event=event).exists():
+            raise ValidationError(APPLICATION_USER_ALREADY_REGISTERED_ERROR)
+
+    def validate_application_email(
+        self, attrs: dict[str, Any], user: SimpleLazyObject | None
+    ) -> ValidationError | None:
+        """
+        Checks that the email does not belong to another user and that
+        there is no application for the same event with the same email.
+        """
+        another_user_email_error: str | None = check_another_user_email(
+            user=user, email=attrs.get("email")
+        )
+        if another_user_email_error:
+            raise ValidationError(another_user_email_error)
+        same_email_in_attrs: bool = bool(
+            attrs.get("email") is not None
+            and Application.objects.filter(
+                event=attrs["event"], email=attrs.get("email")
+            ).exists()
+        )
+        same_email_in_user_personal_data: bool = bool(
+            attrs.get("email") is None
+            and Application.objects.filter(
+                event=attrs["event"], email=user.email
+            ).exists()
+        )
+        if same_email_in_attrs or same_email_in_user_personal_data:
+            raise ValidationError(APPLICATION_EVENT_EMAIL_UNIQUE_ERROR)
+
+    def validate_application_phone(
+        self, attrs: dict[str, Any], user: SimpleLazyObject | None
+    ) -> ValidationError | None:
+        """
+        Checks that the phone does not belong to another user and that
+        there is no application for the same event with the same phone.
+        """
+        another_user_phone_error: str | None = check_another_user_phone(
+            user=user, phone=attrs.get("phone")
+        )
+        if another_user_phone_error:
+            raise ValidationError(another_user_phone_error)
+        same_phone_in_attrs: bool = bool(
+            attrs.get("phone") is not None
+            and Application.objects.filter(
+                event=attrs["event"], phone=attrs.get("phone")
+            ).exists()
+        )
+        same_phone_in_user_personal_data: bool = bool(
+            attrs.get("phone") is None
+            and Application.objects.filter(
+                event=attrs["event"], phone=user.phone
+            ).exists()
+        )
+        if same_phone_in_attrs or same_phone_in_user_personal_data:
+            raise ValidationError(APPLICATION_EVENT_PHONE_UNIQUE_ERROR)
+
+    def validate_application_telegram(
+        self, attrs: dict[str, Any], user: SimpleLazyObject | None
+    ) -> ValidationError | None:
+        """
+        Checks that the telegram does not belong to another user and that
+        there is no application for the same event with the same telegram.
+        """
+        another_user_telegram_error: str | None = check_another_user_telegram(
+            user=user, telegram=attrs.get("telegram")
+        )
+        if another_user_telegram_error:
+            raise ValidationError(another_user_telegram_error)
+        same_telegram_in_attrs: bool = bool(
+            attrs.get("telegram") is not None
+            and Application.objects.filter(
+                event=attrs["event"], phone=attrs.get("telegram")
+            ).exists()
+        )
+        same_telegram_in_user_personal_data: bool = bool(
+            user
+            and user.telegram
+            and attrs.get("telegram") is None
+            and Application.objects.filter(
+                event=attrs["event"], telegram=user.telegram
+            ).exists()
+        )
+        if same_telegram_in_attrs or same_telegram_in_user_personal_data:
+            raise ValidationError(APPLICATION_EVENT_TELEGRAM_UNIQUE_ERROR)
+
+    def validate_application_activity(
+        self, attrs: dict[str, Any], user: SimpleLazyObject | None
+    ) -> ValidationError | None:
+        """
+        Checks if activity is set to 'working', then there should be data for
+        company, position, and experience_years.
+        """
+        work, study, seek = User.ACTIVITY_WORK, User.ACTIVITY_STUDY, User.ACTIVITY_SEEK
+        anonymous_working: bool = not user and attrs["activity"] == work
+        anonymous_no_work_details: bool = not (
+            attrs.get("company")
+            and attrs.get("position")
+            and attrs.get("experience_years")
+        )
+        authorized_working: bool = user and (
+            (user.activity == work and attrs.get("activity") not in [study, seek])
+            or (user.activity != work and attrs.get("activity") == work)
+        )
+        authorized_no_work_details: bool = user and (
+            not (user.company or attrs.get("company"))
+            or not (user.position or attrs.get("position"))
+            or not (user.experience_years or attrs.get("experience_years"))
+        )
+        if anonymous_working and anonymous_no_work_details:
+            raise ValidationError(APPLICATION_ACTIVITY_ANONYMOUS_ERROR)
+        if authorized_working and authorized_no_work_details:
+            raise ValidationError(APPLICATION_ACTIVITY_AUTHORIZED_ERROR)
+
+    def validate_application_specializations(
+        self, attrs: dict[str, Any], user: SimpleLazyObject | None
+    ) -> ValidationError | None:
+        """
+        Checks that authenticated user specified specializations in the profile
+        or in the application.
+        """
+        if user and not (user.specializations.all() or attrs.get("specializations")):
+            raise ValidationError(APPLICATION_SPECIALIZATIONS_REQUIRED_ERROR)
+
+    def validate(self, attrs):
+        """
+        Validates start_time, format, user, email, phone, telegram, activity and
+        specializations. Replaces the format with the correct one if the event has
+        a strict format.
+        """
         user: SimpleLazyObject | None = (
             self.context["request"].user
             if isinstance(self.context["request"].user, User)
             else None
         )
+        event: Event = attrs["event"]
 
-        # email checks
-        another_user_email_error: str | None = check_another_user_email(
-            user=user, email=attrs.get("email")
-        )
-        if another_user_email_error:
-            raise serializers.ValidationError(another_user_email_error)
-        if (
-            attrs.get("email")
-            and Application.objects.filter(
-                event=attrs["event"], email=attrs["email"]
-            ).exists()
-        ):
-            raise serializers.ValidationError(APPLICATION_EVENT_EMAIL_UNIQUE_ERROR)
-
-        # phone checks
-        another_user_phone_error: str | None = check_another_user_phone(
-            user=user, phone=attrs.get("phone")
-        )
-        if another_user_phone_error:
-            raise serializers.ValidationError(another_user_phone_error)
-        if (
-            attrs.get("phone")
-            and Application.objects.filter(
-                event=attrs["event"], phone=attrs["phone"]
-            ).exists()
-        ):
-            raise serializers.ValidationError(APPLICATION_EVENT_PHONE_UNIQUE_ERROR)
-
-        # telegram checks
-        another_user_telegram_error: str | None = check_another_user_telegram(
-            user=user, telegram=attrs.get("telegram")
-        )
-        if another_user_telegram_error:
-            raise serializers.ValidationError(another_user_telegram_error)
-        if (
-            attrs.get("telegram")
-            and Application.objects.filter(
-                event=attrs["event"], telegram=attrs["telegram"]
-            ).exists()
-        ):
-            raise serializers.ValidationError(APPLICATION_EVENT_TELEGRAM_UNIQUE_ERROR)
+        self.validate_application_event_start_time()
+        self.validate_application_format(event, attrs)
+        self.validate_application_user(user, event)
+        self.validate_application_email(attrs, user)
+        self.validate_application_phone(attrs, user)
+        self.validate_application_telegram(attrs, user)
+        self.validate_application_activity(attrs, user)
+        self.validate_application_specializations(attrs, user)
 
         return attrs
 
 
+# TODO: сделать email и phone обязательными полями для заявки анонима
 class ApplicationCreateAnonymousSerializer(ApplicationCreateAuthorizedSerializer):
     """Serializer to create applications on behalf of anonymous site visitors."""
 
@@ -169,6 +286,14 @@ class ApplicationCreateAnonymousSerializer(ApplicationCreateAuthorizedSerializer
 
 class NotificationSettingsSerializer(serializers.ModelSerializer):
     """Serializer for NotificationSettings."""
+
+    user = serializers.PrimaryKeyRelatedField(
+        read_only=True, label=NotificationSettings._meta.get_field("user").verbose_name
+    )
+    application = serializers.PrimaryKeyRelatedField(
+        read_only=True,
+        label=NotificationSettings._meta.get_field("application").verbose_name,
+    )
 
     class Meta:
         model = NotificationSettings

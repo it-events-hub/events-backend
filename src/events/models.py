@@ -21,6 +21,20 @@ class EventType(models.Model):
         return self.name
 
 
+class City(models.Model):
+    """Model for cities of events."""
+
+    name = models.CharField("Название", max_length=40, unique=True)
+    slug = models.SlugField("Слаг", max_length=40, unique=True)
+
+    class Meta:
+        verbose_name = "Город"
+        verbose_name_plural = "Города"
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class Speaker(models.Model):
     """Model for speakers."""
 
@@ -54,10 +68,14 @@ class Event(models.Model):
     ]
 
     STATUS_OPEN: str = "registration is open"
+    STATUS_OFFLINE_CLOSED: str = "registration offline is closed"
+    STATUS_ONLINE_CLOSED: str = "registration online is closed"
     STATUS_CLOSED: str = "registration is closed"
 
     STATUS_CHOISES: list[tuple[str]] = [
         (STATUS_OPEN, "регистрация открыта"),
+        (STATUS_OFFLINE_CLOSED, "регистрация офлайн закрыта"),
+        (STATUS_ONLINE_CLOSED, "регистрация онлайн закрыта"),
         (STATUS_CLOSED, "регистрация закрыта"),
     ]
 
@@ -68,7 +86,7 @@ class Event(models.Model):
     description = models.TextField("Описание")
     is_deleted = models.BooleanField("Деактивировано", default=False)
     status = models.CharField(
-        "Статус", max_length=22, choices=STATUS_CHOISES, default=STATUS_OPEN
+        "Статус", max_length=30, choices=STATUS_CHOISES, default=STATUS_OPEN
     )
     format = models.CharField(
         "Формат", max_length=7, choices=FORMAT_CHOISES, default=FORMAT_HYBRID
@@ -77,6 +95,14 @@ class Event(models.Model):
     start_time = models.DateTimeField("Время начала")
     end_time = models.DateTimeField("Время окончания", blank=True, null=True)
     cost = models.FloatField("Стоимость", default=0, validators=[MinValueValidator(0)])
+    city = models.ForeignKey(
+        City,
+        related_name="events",
+        on_delete=models.CASCADE,
+        verbose_name="Город",
+        blank=True,
+        null=True,
+    )
     place = models.TextField("Место", blank=True)
     event_type = models.ForeignKey(
         EventType, related_name="events", on_delete=models.CASCADE, verbose_name="Тип"
@@ -88,13 +114,22 @@ class Event(models.Model):
         verbose_name="Направление",
     )
     participant_offline_limit = models.PositiveIntegerField(
-        "Количество офлайн участников", blank=True, null=True
+        "Офлайн-лимит",
+        blank=True,
+        null=True,
+        help_text="Максимальное количество участников в формате офлайн",
     )
     participant_online_limit = models.PositiveIntegerField(
-        "Количество онлайн участников", blank=True, null=True
+        "Онлайн-лимит",
+        blank=True,
+        null=True,
+        help_text="Максимальное количество участников в формате онлайн",
     )
     registration_deadline = models.DateTimeField(
-        "Регистрация до", blank=True, null=True
+        "Регистрация до",
+        blank=True,
+        null=True,
+        help_text="Предельный срок (дата и время) регистрации на участие в мероприятии",
     )
     livestream_link = models.URLField("Трансляция", blank=True, null=True)
     additional_materials_link = models.URLField(

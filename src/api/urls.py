@@ -4,31 +4,32 @@ from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 from rest_framework.routers import DefaultRouter
 
-from applications.views import ApplicationCreateAPIView
+from applications.views import ApplicationViewSet, NotificationSettingsAPIView
+from events.views import EventViewSet
 from users.views import UserModelViewSet
 
 app_name = "api"
 
 router = DefaultRouter()
 router.register("users", UserModelViewSet, "users")
-
-# TODO: добавить в эндпойнт списка ивентов спикера (спикер первого доклада)
+router.register("events", EventViewSet, "events")
+router.register("applications", ApplicationViewSet)
 
 urlpatterns = [
     path("", include(router.urls)),
     path("auth/", include("djoser.urls.jwt")),
-    path("applications/", ApplicationCreateAPIView.as_view()),
+    path("notification_settings/<int:pk>/", NotificationSettingsAPIView.as_view()),
 ]
 
-# TODO: add email address and license type
+# TODO: убрать terms_of_service, если мы их не сделаем
 schema_view = get_schema_view(
     openapi.Info(
         title="Hackathon Yandex Funtech Team 02 API",
         default_version="v1",
         description="API documentation for the Hackathon Yandex Funtech project",
         # terms_of_service="URL страницы с пользовательским соглашением",
-        contact=openapi.Contact(email="<add email>"),
-        license=openapi.License(name="<add license>"),
+        contact=openapi.Contact(email="hackathonyacrm@yandex.kz"),
+        license=openapi.License(name="MIT"),
     ),
     public=True,
     permission_classes=(permissions.AllowAny,),

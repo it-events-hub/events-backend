@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Event, EventPart, EventType, Speaker
+from .models import City, Event, EventPart, EventType, Speaker
 
 
 # TODO: создает дубли sql-запросов на странице отдельного ивента, если добавить
@@ -21,6 +21,16 @@ class EventPartsInline(admin.TabularInline):
 @admin.register(EventType)
 class EventTypeAdmin(admin.ModelAdmin):
     """Class to display types of events in admin panel."""
+
+    list_display = ["pk", "name", "slug"]
+    list_display_links = ["name"]
+    search_fields = ["name", "slug"]
+    ordering = ["pk"]
+
+
+@admin.register(City)
+class CityAdmin(admin.ModelAdmin):
+    """Class to display cities of events in admin panel."""
 
     list_display = ["pk", "name", "slug"]
     list_display_links = ["name"]
@@ -51,6 +61,9 @@ class EventAdmin(admin.ModelAdmin):
         "is_deleted",
         "status",
         "format",
+        "city",
+        "participant_offline_limit",
+        "participant_online_limit",
         "start_time",
         "cost",
     ]
@@ -62,11 +75,16 @@ class EventAdmin(admin.ModelAdmin):
         "format",
         "event_type",
         "specializations",
+        "city",
         "start_time",
         "cost",
     ]
     ordering = ["pk"]
     inlines = [EventPartsInline]  # TODO: если отключить, дублей sql-запросов не будет
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.select_related("city", "event_type", "specializations")
 
 
 @admin.register(EventPart)

@@ -38,7 +38,9 @@ if MODE == "dev":
 else:
     DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", default="").split()
+
+CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", default="").split()
 
 # For django-debug-toolbar
 if MODE == "dev":
@@ -66,6 +68,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "drf_yasg",
     "djoser",
+    "django_filters",
 ]
 
 MIDDLEWARE = [
@@ -78,6 +81,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "debug_toolbar.middleware.DebugToolbarMiddleware",
+    "querycount.middleware.QueryCountMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -104,7 +108,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-if os.getenv("DOCKER") == "yes":
+if DOCKER == "yes":
     DATABASES = {
         "default": {
             "ENGINE": os.getenv("DB_ENGINE", default="django.db.backends.postgresql"),
@@ -213,6 +217,11 @@ SWAGGER_SETTINGS = {
         "Bearer": {"type": "apiKey", "name": "Authorization", "in": "header"}
     }
 }
+
+# Querycount settings. See https://github.com/bradmontgomery/django-querycount
+# DISPLAY_DUPLICATES - how many duplicated queries to display (None or integer)
+
+QUERYCOUNT = {"DISPLAY_DUPLICATES": None}
 
 # CORS settings for frontend development
 

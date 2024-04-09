@@ -36,3 +36,39 @@ loaddb-no-contenttypes-permissions:
 
 collectstatic:
 	cd src; python3 manage.py collectstatic --no-input
+
+up-compose:
+	cd infra; sudo docker compose -f docker-compose.local.yml up -d
+
+build-compose:
+	cd infra; sudo docker compose -f docker-compose.local.yml up -d --build
+
+stop-compose:
+	cd infra; sudo docker compose -f docker-compose.local.yml stop
+
+start-compose:
+	cd infra; sudo docker compose -f docker-compose.local.yml start
+
+makemig-compose:
+	cd infra; sudo docker compose -f docker-compose.local.yml exec -it backend python manage.py makemigrations
+
+migrate-compose:
+	cd infra; sudo docker compose -f docker-compose.local.yml exec -it backend python manage.py migrate
+
+superuser-compose:
+	cd infra; sudo docker compose -f docker-compose.local.yml exec -it backend python manage.py createsuperuser --email test@test.com --username admin -v 3
+
+collectstatic-compose:
+	cd infra; sudo docker compose -f docker-compose.local.yml exec -it backend python manage.py collectstatic --no-input
+
+shell-compose:
+	cd infra; sudo docker compose -f docker-compose.local.yml exec -it backend python manage.py shell
+
+ls-compose:
+	cd infra; sudo docker compose -f docker-compose.local.yml exec -it backend ls
+
+prune-containers:
+	sudo docker container prune
+
+prune-images:
+	sudo docker image prune
