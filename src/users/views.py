@@ -18,11 +18,7 @@ from .models import User
 from .serializers import UserSerializer
 
 
-class UserModelViewSet(
-    GenericViewSet,
-    ListModelMixin,
-    CreateModelMixin,
-):
+class UserModelViewSet(GenericViewSet, ListModelMixin, CreateModelMixin):
     queryset = User.objects.all()
 
     def get_serializer_class(self):
@@ -42,10 +38,7 @@ class UserModelViewSet(
     #     context = {"user": user}
     #     email.ActivationEmail(self.request, context).send([user_email])
 
-    @action(
-        methods=["post"],
-        detail=False,
-    )
+    @action(methods=["post"], detail=False)
     def resend_activation(self, request) -> Response:
         user = request.user
         if not user.is_active:
@@ -87,7 +80,6 @@ class UserModelViewSet(
     @me.mapping.patch
     def patch_me(self, request) -> Response:
         """Update current user's data."""
-        # breakpoint()
         instance = request.user
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)

@@ -25,7 +25,7 @@ class SpecializationSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    specializations = SpecializationSerializer(many=True)
+    # specializations = SpecializationSerializer(many=True)
 
     class Meta:
         model = User
@@ -47,7 +47,6 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "email")
 
     def update(self, instance: User, validated_data: dict) -> User:
-        # breakpoint()
         for item in validated_data.items():
             if item[0] in [
                 "specializations",
@@ -59,17 +58,9 @@ class UserSerializer(serializers.ModelSerializer):
         instance.save()
 
         if "specializations" in validated_data:
-            # breakpoint()
             specializations: dict = validated_data.pop("specializations")
-            User.specializations.through.filter(user=instance).delete()
-            specs = [
-                User.specializations.through(
-                    user=instance,
-                    specialization=spec,
-                )
-                for spec in specializations
-            ]
-            User.specializations.through.bulk_create(specs)
+            instance.specializations.clear()
+            instance.specializations.set(specializations)
 
         return instance
 

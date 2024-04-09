@@ -20,7 +20,7 @@ from api.filters import EventsFilter
 from api.pagination import CustomPageNumberPagination
 
 
-# TODO: добавить permission_classes
+# TODO: добавить permission_classes - создавать и редактировать может только IsAdminUser
 @method_decorator(
     name="list",
     decorator=swagger_auto_schema(
