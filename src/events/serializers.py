@@ -3,6 +3,7 @@ from drf_yasg.utils import swagger_serializer_method
 from rest_framework import serializers
 
 from .models import City, Event, EventPart, EventType, Speaker
+from api.services.image_decoder import Base64ImageField
 from applications.models import Application
 from users.models import Specialization
 
@@ -77,6 +78,7 @@ class SpeakerSerializer(serializers.ModelSerializer):
         source="description",
         label=Speaker._meta.get_field("description").verbose_name,
     )
+    photo = Base64ImageField()
 
     class Meta:
         model = Speaker
@@ -136,6 +138,7 @@ class EventListSerializer(serializers.ModelSerializer):
     is_registrated = serializers.SerializerMethodField()
     submitted_applications = serializers.SerializerMethodField()
     first_speaker = serializers.SerializerMethodField()
+    image = Base64ImageField()
 
     class Meta:
         model = Event
@@ -216,6 +219,7 @@ class EventDetailSerializer(EventListSerializer):
     """Serializer to retrieve one event."""
 
     event_parts = EventPartSerializer(many=True, source="parts")
+    image = Base64ImageField()
 
     class Meta(EventListSerializer.Meta):
         fields = [
@@ -252,6 +256,8 @@ class EventDetailSerializer(EventListSerializer):
 # заполнены
 class EventCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating an event."""
+
+    image = Base64ImageField()
 
     class Meta:
         model = Event
