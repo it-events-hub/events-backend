@@ -20,8 +20,6 @@ from api.filters import EventsFilter
 from api.pagination import CustomPageNumberPagination
 
 
-# TODO: добавить в сериализаторы Event отображение количества поданных заявок
-# (онлайн и офлайн), в Админку тоже можно добавить
 # TODO: добавить permission_classes
 @method_decorator(
     name="list",

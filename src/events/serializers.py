@@ -127,9 +127,6 @@ class EventPartSerializer(serializers.ModelSerializer):
         ]
 
 
-# TODO: сделать валидацию (метод validate в сериализаторе создания/редактирования нового
-# ивента), что если формат ивента офлайн или гибрид, то поля city и place должны быть
-# заполнены
 class EventListSerializer(serializers.ModelSerializer):
     """Serializer for handling a list of events."""
 
@@ -137,6 +134,7 @@ class EventListSerializer(serializers.ModelSerializer):
     city = CitySerializer(allow_null=True)
     specializations = SpecializationSerializer(read_only=True)
     is_registrated = serializers.SerializerMethodField()
+    submitted_applications = serializers.SerializerMethodField()
     first_speaker = serializers.SerializerMethodField()
 
     class Meta:
@@ -146,6 +144,7 @@ class EventListSerializer(serializers.ModelSerializer):
             "name",
             "is_deleted",
             "is_registrated",
+            "submitted_applications",
             "first_speaker",
             "organization",
             "description",
@@ -176,12 +175,14 @@ class EventListSerializer(serializers.ModelSerializer):
             return queryset.select_related(
                 "event_type", "specializations", "city"
             ).prefetch_related(
-                Prefetch("parts", queryset=EventPart.objects.select_related("speaker"))
+                "applications",
+                Prefetch("parts", queryset=EventPart.objects.select_related("speaker")),
             )
         return (
             queryset.select_related("event_type", "specializations", "city")
             .prefetch_related(
-                Prefetch("parts", queryset=EventPart.objects.select_related("speaker"))
+                "applications",
+                Prefetch("parts", queryset=EventPart.objects.select_related("speaker")),
             )
             .annotate(
                 is_registrated=Exists(
@@ -196,6 +197,10 @@ class EventListSerializer(serializers.ModelSerializer):
         if not request or request.user.is_anonymous:
             return False
         return obj.is_registrated
+
+    def get_submitted_applications(self, obj) -> int:
+        """Shows the number of applications submitted to participate in the event."""
+        return obj.applications.count()
 
     @swagger_serializer_method(SpeakerSerializer)
     def get_first_speaker(self, obj):
@@ -242,6 +247,9 @@ class EventDetailSerializer(EventListSerializer):
         ]
 
 
+# TODO: сделать валидацию (метод validate в сериализаторе создания/редактирования нового
+# ивента), что если формат ивента офлайн или гибрид, то поля city и place должны быть
+# заполнены
 class EventCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating an event."""
 
