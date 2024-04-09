@@ -26,9 +26,11 @@ from .utils import (
 from api.loggers import logger
 from events.models import Event
 from users.models import Specialization, User
-from users.utils import check_birth_date
+from users.utils import PHONE_NUMBER_REGEX, check_birth_date
 
 
+# TODO: написать фронтам, что Swagger по умолчанию показывает вид заявки для анонима,
+# но если заявку оставляет авторизованный юзер, то у него обязательное только поле event
 class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
     """Serializer to create applications on behalf of authorized site visitors."""
 
@@ -263,7 +265,6 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
         return attrs
 
 
-# TODO: сделать email и phone обязательными полями для заявки анонима
 class ApplicationCreateAnonymousSerializer(ApplicationCreateAuthorizedSerializer):
     """Serializer to create applications on behalf of anonymous site visitors."""
 
@@ -274,6 +275,15 @@ class ApplicationCreateAnonymousSerializer(ApplicationCreateAuthorizedSerializer
     last_name = serializers.CharField(
         max_length=Application._meta.get_field("last_name").max_length,
         label=Application._meta.get_field("last_name").verbose_name,
+    )
+    email = serializers.EmailField(
+        max_length=Application._meta.get_field("email").max_length,
+        label=Application._meta.get_field("email").verbose_name,
+    )
+    phone = serializers.RegexField(
+        max_length=Application._meta.get_field("phone").max_length,
+        label=Application._meta.get_field("phone").verbose_name,
+        regex=PHONE_NUMBER_REGEX,
     )
     activity = serializers.ChoiceField(
         choices=User.ACTIVITY_CHOISES,
