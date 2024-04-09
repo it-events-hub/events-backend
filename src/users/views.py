@@ -87,7 +87,7 @@ class UserModelViewSet(
     @me.mapping.patch
     def patch_me(self, request) -> Response:
         """Update current user's data."""
-        breakpoint()
+        # breakpoint()
         instance = request.user
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)

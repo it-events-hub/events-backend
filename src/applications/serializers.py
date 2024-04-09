@@ -253,7 +253,7 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
         )
         event: Event = attrs["event"]
 
-        self.validate_application_event_start_time()
+        self.validate_application_event_start_time(event)
         self.validate_application_format(event, attrs)
         self.validate_application_user(user, event)
         self.validate_application_email(attrs, user)
