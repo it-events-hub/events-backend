@@ -98,11 +98,10 @@ class EventPartAdmin(admin.ModelAdmin):
         "presentation_type",
         "start_time",
         "event",
-        "is_deleted",
     ]
     list_display_links = ["name"]
     search_fields = ["name", "event__name", "speaker__name"]
-    list_filter = ["is_deleted", "start_time", "presentation_type"]
+    list_filter = ["start_time", "presentation_type"]
     ordering = ["pk"]
 
     def get_queryset(self, request):

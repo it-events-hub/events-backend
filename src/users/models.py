@@ -77,7 +77,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         null=True,
     )
     is_staff = models.BooleanField("Сотрудник", default=False)
-    is_active = models.BooleanField("Активирован", default=False)
+    is_active = models.BooleanField("Активирован", default=True)
     date_joined = models.DateTimeField("Дата и время регистрации", default=timezone.now)
     specializations = models.ManyToManyField(
         Specialization, related_name="users", blank=True

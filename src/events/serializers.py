@@ -93,10 +93,6 @@ class EventPartSerializer(serializers.ModelSerializer):
     """Serializer for handling event parts."""
 
     speaker = SpeakerSerializer(read_only=True, allow_null=True)
-    event_part_is_deleted = serializers.BooleanField(
-        source="is_deleted",
-        label=EventPart._meta.get_field("is_deleted").verbose_name,
-    )
     event_part_name = serializers.CharField(
         source="name",
         label=EventPart._meta.get_field("name").verbose_name,
@@ -121,7 +117,6 @@ class EventPartSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "speaker",
-            "event_part_is_deleted",
             "event_part_name",
             "event_part_description",
             "event_part_created",

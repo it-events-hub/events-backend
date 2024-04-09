@@ -21,9 +21,9 @@ services:
     env_file:
       - ./.env
     command: >
-      sh -c "gunicorn config.wsgi:application --bind 0:8000
-             python manage.py collectstatic --no-input &&
-             python manage.py migrate &&"
+      sh -c "python manage.py collectstatic --no-input &&
+             python manage.py migrate &&
+             gunicorn config.wsgi:application --bind 0:8000"
 
   nginx:
     image: nginx:1.25.3-alpine
