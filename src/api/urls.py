@@ -6,18 +6,12 @@ from rest_framework.routers import DefaultRouter
 
 from applications.views import ApplicationViewSet, NotificationSettingsAPIView
 from events.views import EventViewSet
-from users.views import ActivationViewSet, PasswordViewSet, UserModelViewSet
-
-# from rest_framework_simplejwt import views
-# from djoser.urls import base
-
+from users.views import UserModelViewSet
 
 app_name = "api"
 
 router = DefaultRouter()
 router.register("users", UserModelViewSet, "users")
-router.register("users", ActivationViewSet, "activation")
-router.register("users", PasswordViewSet, "password")
 router.register("events", EventViewSet, "events")
 router.register("applications", ApplicationViewSet)
 
@@ -27,6 +21,7 @@ urlpatterns = [
     path("notification_settings/<int:pk>/", NotificationSettingsAPIView.as_view()),
 ]
 
+# TODO: убрать terms_of_service, если мы их не сделаем
 schema_view = get_schema_view(
     openapi.Info(
         title="Hackathon Yandex Funtech Team 02 API",

@@ -188,7 +188,6 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "AUTH_HEADER_TYPES": ("JWT",),
     "ACCESS_TOKEN_LIFETIME": timedelta(days=7),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "SLIDING_TOKEN_LIFETIME": timedelta(minutes=7),
@@ -200,7 +199,6 @@ SIMPLE_JWT = {
 DJOSER = {
     "LOGIN_FIELD": "email",
     "SERIALIZERS": {
-        "activation": "djoser.serializers.ActivationSerializer",
         "user": "users.serializers.UserSerializer",
         "current_user": "users.serializers.UserSerializer",
     },
@@ -209,7 +207,7 @@ DJOSER = {
     },
     "HIDE_USERS": False,
     "SEND_ACTIVATION_EMAIL": True,
-    "ACTIVATION_URL": "#/users/activation/{uid}/{token}",
+    "ACTIVATION_URL": "api/v1/users/activation/{uid}/{token}",
 }
 
 # DRF-yasg Swagger settings (JWT-tokens)
@@ -237,3 +235,13 @@ USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
+
+# Email settings
+
+EMAIL_USE_TLS = True
+EMAIL_HOST = os.getenv("EMAIL_HOST")
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+EMAIL_PORT = os.getenv("EMAIL_PORT")
+# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"

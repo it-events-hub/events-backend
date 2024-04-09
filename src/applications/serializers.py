@@ -263,6 +263,7 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
         return attrs
 
 
+# TODO: сделать email и phone обязательными полями для заявки анонима
 class ApplicationCreateAnonymousSerializer(ApplicationCreateAuthorizedSerializer):
     """Serializer to create applications on behalf of anonymous site visitors."""
 
