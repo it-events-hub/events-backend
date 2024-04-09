@@ -5,9 +5,8 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
-from djoser import email
 from djoser.conf import settings as djoser_settings
-from djoser.serializers import ActivationSerializer, UserCreateSerializer
+from djoser.serializers import UserCreateSerializer
 from rest_framework.decorators import action
 from rest_framework.mixins import CreateModelMixin, ListModelMixin, UpdateModelMixin
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -28,21 +27,9 @@ class UserModelViewSet(
         """Select serializer as required."""
         if self.action == "create":
             return UserCreateSerializer
-        if self.action == "activation":
-            return ActivationSerializer
         if self.action == "patch_me":
             return UserUpdateSerializer
         return UserSerializer
-
-    @action(methods=["post"], detail=False)
-    def resend_activation(self, request) -> Response:
-        user = request.user
-        if not user.is_active:
-            email.ActivationEmail(
-                self.request,
-                {"user": user},
-            ).send([user.email])
-        return Response(status=HTTPStatus.NO_CONTENT)
 
     @action(
         methods=["get"],
