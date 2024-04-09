@@ -19,6 +19,12 @@ PHONE_NUMBER_ERROR: str = (
     "форматах '+7XXXXXXXXXX', '7XXXXXXXXXX' или '8XXXXXXXXXX'."
 )
 PHONE_NUMBER_REGEX: str = r"^(\+7|7|8)\d{10}$"
+REQUIRED_FIELDS_ERROR = (
+    "Поля email, phone, first_name, last_name обязательны для заполнения."
+)
+SUPERUSER_FIELDS_ERROR = (
+    "Суперпользователь должен иметь is_staff=True, is_superuser=True и is_active=True."
+)
 TELEGRAM_ID_ERROR: str = (
     "Значение должно начинаться с символа @, затем идет username длиной 5-32 символа, "
     "в котором допускаются только латинские буквы, цифры и нижнее подчеркивание."

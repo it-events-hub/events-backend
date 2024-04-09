@@ -206,8 +206,8 @@ DJOSER = {
         # TODO: Add permissions
     },
     "HIDE_USERS": False,
-    "SEND_ACTIVATION_EMAIL": True,
-    "ACTIVATION_URL": "api/v1/users/activation/{uid}/{token}",
+    # "SEND_ACTIVATION_EMAIL": True,
+    # "ACTIVATION_URL": "api/v1/users/activation/{uid}/{token}",
 }
 
 # DRF-yasg Swagger settings (JWT-tokens)
