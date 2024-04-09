@@ -22,7 +22,6 @@ from api.pagination import CustomPageNumberPagination
 from api.permissions import IsAdminOrReadOnly
 
 
-# TODO: добавить permission_classes
 @method_decorator(
     name="list",
     decorator=swagger_auto_schema(

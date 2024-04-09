@@ -1,5 +1,3 @@
-from http import HTTPStatus
-
 from rest_framework import serializers
 
 from .models import Specialization, User
@@ -17,6 +15,8 @@ from .models import Specialization, User
 
 
 class SpecializationSerializer(serializers.ModelSerializer):
+    """Serializer to display specializations."""
+
     slug = serializers.SlugField()
 
     class Meta:
@@ -25,6 +25,8 @@ class SpecializationSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    """Serializer to display data in the user's personal account."""
+
     specializations = SpecializationSerializer(many=True)
 
     class Meta:
@@ -46,8 +48,18 @@ class UserSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("id", "email")
 
+
+class UserUpdateSerializer(UserSerializer):
+    """Serializer to update data in the user's personal account."""
+
+    specializations = serializers.PrimaryKeyRelatedField(
+        queryset=Specialization.objects.all(), many=True
+    )
+
+    class Meta(UserSerializer.Meta):
+        pass
+
     def update(self, instance: User, validated_data: dict) -> User:
-        # breakpoint()
         for item in validated_data.items():
             if item[0] in [
                 "specializations",
@@ -59,32 +71,8 @@ class UserSerializer(serializers.ModelSerializer):
         instance.save()
 
         if "specializations" in validated_data:
-            # breakpoint()
             specializations: dict = validated_data.pop("specializations")
-            User.specializations.through.filter(user=instance).delete()
-            specs = [
-                User.specializations.through(
-                    user=instance,
-                    specialization=spec,
-                )
-                for spec in specializations
-            ]
-            User.specializations.through.bulk_create(specs)
+            instance.specializations.clear()
+            instance.specializations.set(specializations)
 
         return instance
-
-    def validate_specializations(self, value: list) -> list:
-        if not value:
-            raise serializers.ValidationError(
-                'Поле "Направление" обязательно к заполнению',
-                code=HTTPStatus.BAD_REQUEST,
-            )
-
-        spec_ids = {s.id for s in value}
-        if len(spec_ids) != len(value):
-            raise serializers.ValidationError(
-                "Повтор направления",
-                code=HTTPStatus.BAD_REQUEST,
-            )
-
-        return value

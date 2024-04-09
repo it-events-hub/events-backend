@@ -9,21 +9,20 @@ from djoser import compat, email
 from djoser.conf import settings as djoser_settings
 from djoser.serializers import ActivationSerializer, UserCreateSerializer
 from rest_framework.decorators import action
-from rest_framework.mixins import CreateModelMixin, ListModelMixin
+from rest_framework.mixins import CreateModelMixin, ListModelMixin, UpdateModelMixin
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
 from .models import User
-from .serializers import UserSerializer
+from .serializers import UserSerializer, UserUpdateSerializer
 
 
 class UserModelViewSet(
-    GenericViewSet,
-    ListModelMixin,
-    CreateModelMixin,
+    ListModelMixin, CreateModelMixin, UpdateModelMixin, GenericViewSet
 ):
     queryset = User.objects.all()
+    http_method_names = ["get", "post", "patch"]
 
     def get_serializer_class(self):
         """Select serializer as required."""
@@ -31,21 +30,11 @@ class UserModelViewSet(
             return UserCreateSerializer
         if self.action == "activation":
             return ActivationSerializer
+        if self.action == "patch_me":
+            return UserUpdateSerializer
         return UserSerializer
 
-    # def perform_create(self, serializer) -> None:
-    #     """Create user and send activation email."""
-    #     user_email = self.request.data["email"]
-    #     serializer.save(email=user_email)
-
-    #     user = User.objects.get(email=user_email)
-    #     context = {"user": user}
-    #     email.ActivationEmail(self.request, context).send([user_email])
-
-    @action(
-        methods=["post"],
-        detail=False,
-    )
+    @action(methods=["post"], detail=False)
     def resend_activation(self, request) -> Response:
         user = request.user
         if not user.is_active:
@@ -87,7 +76,6 @@ class UserModelViewSet(
     @me.mapping.patch
     def patch_me(self, request) -> Response:
         """Update current user's data."""
-        # breakpoint()
         instance = request.user
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)

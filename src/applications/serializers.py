@@ -29,8 +29,6 @@ from users.models import Specialization, User
 from users.utils import PHONE_NUMBER_REGEX, check_birth_date
 
 
-# TODO: написать фронтам, что Swagger по умолчанию показывает вид заявки для анонима,
-# но если заявку оставляет авторизованный юзер, то у него обязательное только поле event
 class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
     """Serializer to create applications on behalf of authorized site visitors."""
 
