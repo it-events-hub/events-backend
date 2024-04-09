@@ -6,13 +6,14 @@ from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.status import HTTP_200_OK
+from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from rest_framework.viewsets import ModelViewSet
 
 from .models import Event
 from .schemas import EVENT_LIST_DESCRIPTION, EVENT_LIST_FILTERS
 from .serializers import (
     EventCreateSerializer,
+    EventDeactivationSerializer,
     EventDetailSerializer,
     EventListSerializer,
 )
@@ -47,6 +48,8 @@ class EventViewSet(ModelViewSet):
             return EventCreateSerializer
         if self.action == "retrieve":
             return EventDetailSerializer
+        if self.action == "activate" or self.action == "deactivate":
+            return EventDeactivationSerializer
         return EventListSerializer
 
     def get_queryset(self):
@@ -54,21 +57,31 @@ class EventViewSet(ModelViewSet):
             Event.objects.all(), user=self.request.user
         )
 
+    @staticmethod
+    def _change_event_status(request, instance, is_deleted):
+        """Change the status of a spicific event."""
+        data = {"is_deleted": is_deleted}
+        serializer = EventDeactivationSerializer(instance, data=data)
+        if serializer.is_valid():
+            serializer.save()
+            if is_deleted:
+                message = "Событие успешно деактивировано."
+            else:
+                message = "Событие успешно активировано."
+            return Response({"message": message})
+        return Response(serializer.errors, status=HTTP_400_BAD_REQUEST)
+
     @action(detail=True, methods=["patch"], permission_classes=[IsAdminUser])
     def deactivate(self, request, pk=None):
         """Deactivate a specific event."""
-        event = self.get_object()
-        event.is_deleted = True
-        event.save()
-        return Response({"message": "Событие успешно деактивировано."})
+        instance = self.get_object()
+        return self._change_event_status(request, instance, is_deleted=True)
 
     @action(detail=True, methods=["patch"], permission_classes=[IsAdminUser])
     def activate(self, request, pk=None):
         """Activate a specific event."""
-        event = self.get_object()
-        event.is_deleted = False
-        event.save()
-        return Response({"message": "Событие успешно активировано."})
+        instance = self.get_object()
+        return self._change_event_status(request, instance, is_deleted=False)
 
     @action(
         detail=False,

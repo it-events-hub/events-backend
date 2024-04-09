@@ -271,3 +271,11 @@ class EventCreateSerializer(serializers.ModelSerializer):
             "event_type",
             "city",
         ]
+
+
+class EventDeactivationSerializer(serializers.ModelSerializer):
+    """Serializer for event deactivation."""
+
+    class Meta:
+        model = Event
+        fields = ["id", "is_deleted"]
