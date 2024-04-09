@@ -283,4 +283,4 @@ class EventDeactivationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Event
-        fields = ["id", "is_deleted"]
+        fields = ["id"]

@@ -43,7 +43,7 @@ class EventViewSet(ModelViewSet):
     ordering_fields = ["start_time", "name"]
     ordering = ["pk"]
     pagination_class = CustomPageNumberPagination
-    permission_classes = [IsAdminOrReadOnly,]
+    permission_classes = [IsAdminOrReadOnly]
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -67,12 +67,11 @@ class EventViewSet(ModelViewSet):
         data = {"is_deleted": is_deleted}
         serializer = EventDeactivationSerializer(instance, data=data)
         if serializer.is_valid():
+            instance.is_deleted = is_deleted
+            instance.save()
             serializer.save()
-            if is_deleted:
-                message = "Событие успешно деактивировано."
-            else:
-                message = "Событие успешно активировано."
-            return Response({"message": message})
+            response_serializer = EventDetailSerializer(instance)
+            return Response(response_serializer.data, status=HTTP_200_OK)
         return Response(serializer.errors, status=HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=["patch"], permission_classes=[IsAdminUser])
