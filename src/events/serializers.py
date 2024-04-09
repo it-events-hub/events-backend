@@ -270,4 +270,17 @@ class EventCreateSerializer(serializers.ModelSerializer):
             "is_featured_on_yandex_afisha",
             "event_type",
             "city",
+            "image",
+            "end_time",
+            "status",
+            "cost",
+            "registration_deadline",
         ]
+
+
+class EventDeactivationSerializer(serializers.ModelSerializer):
+    """Serializer for event deactivation."""
+
+    class Meta:
+        model = Event
+        fields = ["id"]
