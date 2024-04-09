@@ -16,3 +16,14 @@ class IsAuthorOrCreateOnly(permissions.BasePermission):
         if view.action == "destroy":
             return request.user.is_authenticated and obj.user == request.user
         return False
+
+
+class IsAdminOrReadOnly(permissions.BasePermission):
+    """Allows only admins to create, edit and delete objects."""
+
+    def has_permission(self, request, view):
+        return (
+            request.method in permissions.SAFE_METHODS
+            or request.user.is_authenticated
+            and request.user.is_staff
+        )

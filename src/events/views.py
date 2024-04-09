@@ -19,6 +19,7 @@ from .serializers import (
 )
 from api.filters import EventsFilter
 from api.pagination import CustomPageNumberPagination
+from api.permissions import IsAdminOrReadOnly
 
 
 # TODO: добавить permission_classes
@@ -42,12 +43,15 @@ class EventViewSet(ModelViewSet):
     ordering_fields = ["start_time", "name"]
     ordering = ["pk"]
     pagination_class = CustomPageNumberPagination
+    permission_classes = [IsAdminOrReadOnly,]
 
     def get_serializer_class(self):
         if self.action == "create":
             return EventCreateSerializer
         if self.action == "retrieve":
             return EventDetailSerializer
+        if self.action == "partial_update":
+            return EventCreateSerializer
         if self.action == "activate" or self.action == "deactivate":
             return EventDeactivationSerializer
         return EventListSerializer
