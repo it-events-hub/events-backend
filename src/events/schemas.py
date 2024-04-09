@@ -1,13 +1,11 @@
 from drf_yasg import openapi
 
 from .models import Event
-from .serializers import EventSerializer
 
 EVENT_LIST_DESCRIPTION: str = (
     "Endpoint to get list of events, accessible to both authorized and unauthorized "
     "visitors, events can be filtered and sorted (ordered)."
 )
-EVENT_LIST_RESPONSES = {200: EventSerializer}
 EVENT_LIST_FILTERS = [
     openapi.Parameter(
         "name",

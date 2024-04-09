@@ -1,31 +1,30 @@
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django_filters import rest_framework as rf_filters
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.status import HTTP_200_OK
 from rest_framework.viewsets import ModelViewSet
 
 from .models import Event
-from .schemas import EVENT_LIST_DESCRIPTION, EVENT_LIST_FILTERS, EVENT_LIST_RESPONSES
-from .serializers import EventCreateSerializer, EventSerializer
+from .schemas import EVENT_LIST_DESCRIPTION, EVENT_LIST_FILTERS
+from .serializers import (
+    EventCreateSerializer,
+    EventDetailSerializer,
+    EventListSerializer,
+)
 from api.filters import EventsFilter
 from api.pagination import CustomPageNumberPagination
 
 
-# TODO: добавить в сериализаторы Event отображение количества поданных заявок
-# (онлайн и офлайн), в Админку тоже можно добавить
 # TODO: добавить permission_classes
-# TODO: сделать новый эндпойнт (@action) для показа авторизованному юзеру 3 персональных
-# рекомнендаций, если у него в ЛК нет направлений, то 3 ближайших, если есть
-# направления, то 3 ближайших с этими направлениями, если он будет показывать те же
-# ивенты, что и основной эндпойнт Афиши, это не страшно
 @method_decorator(
     name="list",
     decorator=swagger_auto_schema(
-        operation_summary="list",
         operation_description=EVENT_LIST_DESCRIPTION,
-        responses=EVENT_LIST_RESPONSES,
         manual_parameters=EVENT_LIST_FILTERS,
     ),
 )
@@ -37,8 +36,7 @@ class EventViewSet(ModelViewSet):
 
     queryset = Event.objects.prefetch_related("event_type", "parts", "specializations")
     http_method_names = ["get", "post", "patch"]
-    serializer_class = EventSerializer
-    filter_backends = [rf_filters.DjangoFilterBackend, OrderingFilter]  #
+    filter_backends = [rf_filters.DjangoFilterBackend, OrderingFilter]
     filterset_class = EventsFilter
     ordering_fields = ["start_time", "name"]
     ordering = ["pk"]
@@ -47,17 +45,16 @@ class EventViewSet(ModelViewSet):
     def get_serializer_class(self):
         if self.action == "create":
             return EventCreateSerializer
-        return EventSerializer
+        if self.action == "retrieve":
+            return EventDetailSerializer
+        return EventListSerializer
 
     def get_queryset(self):
-        return EventSerializer.setup_eager_loading(
+        return EventListSerializer.setup_eager_loading(
             Event.objects.all(), user=self.request.user
         )
 
-    @action(
-        detail=True,
-        methods=["patch"],
-    )
+    @action(detail=True, methods=["patch"], permission_classes=[IsAdminUser])
     def deactivate(self, request, pk=None):
         """Deactivate a specific event."""
         event = self.get_object()
@@ -65,13 +62,51 @@ class EventViewSet(ModelViewSet):
         event.save()
         return Response({"message": "Событие успешно деактивировано."})
 
-    @action(
-        detail=True,
-        methods=["patch"],
-    )
+    @action(detail=True, methods=["patch"], permission_classes=[IsAdminUser])
     def activate(self, request, pk=None):
         """Activate a specific event."""
         event = self.get_object()
         event.is_deleted = False
         event.save()
         return Response({"message": "Событие успешно активировано."})
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="three-recommended-events",
+        permission_classes=[IsAuthenticated],
+        filterset_class=None,
+        pagination_class=None,
+        ordering=None,
+    )
+    def three_recommended_events(self, request):
+        """
+        Shows three recommended events for authorized user according to
+        the user's specializations.
+        """
+        now = timezone.now()
+        specializations = request.user.specializations.all()
+        all_future_events = (
+            self.get_queryset().filter(start_time__gt=now).order_by("start_time")
+        )
+        recommended_future_events = list(
+            all_future_events.filter(specializations__in=specializations)
+        )
+        if len(recommended_future_events) >= 3:
+            result = recommended_future_events[:3]
+        else:
+            result = recommended_future_events
+            additional_events_number: int = 3 - len(result)
+            for event in all_future_events:
+                if not additional_events_number:
+                    break
+                if event not in result:
+                    result.append(event)
+                    additional_events_number -= 1
+
+        serializer = self.get_serializer_class()(
+            result,
+            many=True,
+            context={"request": request, "format": self.format_kwarg, "view": self},
+        )
+        return Response(serializer.data, status=HTTP_200_OK)

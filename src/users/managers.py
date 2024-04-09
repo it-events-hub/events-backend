@@ -1,13 +1,7 @@
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.hashers import make_password
 
-# TODO: move to users.utils
-SUPERUSER_FIELDS_ERROR = (
-    "Суперпользователь должен иметь is_staff=True, is_superuser=True и is_active=True."
-)
-REQUIRED_FIELDS_ERROR = (
-    "Поля email, phone, first_name, last_name обязательны для заполнения."
-)
+from .utils import REQUIRED_FIELDS_ERROR, SUPERUSER_FIELDS_ERROR
 
 
 class MyUserManager(BaseUserManager):
@@ -51,7 +45,7 @@ class MyUserManager(BaseUserManager):
         """Sets defaults for an ordinary user."""
         extra_fields.setdefault("is_staff", False)
         extra_fields.setdefault("is_superuser", False)
-        extra_fields.setdefault("is_active", False)
+        extra_fields.setdefault("is_active", True)
         return self._create_user(
             email=email,
             password=password,

@@ -84,7 +84,7 @@ class Event(models.Model):
         "Организатор", max_length=100, default=DEFAULT_EVENT_ORGANIZATOR
     )
     description = models.TextField("Описание")
-    is_deleted = models.BooleanField("Деактивировано", default=False)
+    is_deleted = models.BooleanField("Деактивировано", default=True)
     status = models.CharField(
         "Статус", max_length=30, choices=STATUS_CHOISES, default=STATUS_OPEN
     )
@@ -163,7 +163,6 @@ class EventPart(models.Model):
         on_delete=models.CASCADE,
         verbose_name="Мероприятие",
     )
-    is_deleted = models.BooleanField("Деактивировано", default=False)
     name = models.CharField("Название", max_length=100)
     description = models.TextField("Описание", blank=True, null=True)
     speaker = models.ForeignKey(

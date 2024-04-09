@@ -1,4 +1,5 @@
 from django.db.models import Exists, OuterRef, Prefetch
+from drf_yasg.utils import swagger_serializer_method
 from rest_framework import serializers
 
 from .models import City, Event, EventPart, EventType, Speaker
@@ -93,10 +94,6 @@ class EventPartSerializer(serializers.ModelSerializer):
     """Serializer for handling event parts."""
 
     speaker = SpeakerSerializer(read_only=True, allow_null=True)
-    event_part_is_deleted = serializers.BooleanField(
-        source="is_deleted",
-        label=EventPart._meta.get_field("is_deleted").verbose_name,
-    )
     event_part_name = serializers.CharField(
         source="name",
         label=EventPart._meta.get_field("name").verbose_name,
@@ -121,7 +118,6 @@ class EventPartSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "speaker",
-            "event_part_is_deleted",
             "event_part_name",
             "event_part_description",
             "event_part_created",
@@ -131,21 +127,97 @@ class EventPartSerializer(serializers.ModelSerializer):
         ]
 
 
-# TODO: сделать валидацию (метод validate в сериализаторе создания/редактирования нового
-# ивента), что если формат ивента офлайн или гибрид, то поля city и place должны быть
-# заполнены
-class EventSerializer(serializers.ModelSerializer):
+class EventListSerializer(serializers.ModelSerializer):
     """Serializer for handling a list of events."""
 
     event_type = EventTypeSerializer(read_only=True)
     city = CitySerializer(allow_null=True)
     specializations = SpecializationSerializer(read_only=True)
-    event_parts = EventPartSerializer(many=True, source="parts")
     is_registrated = serializers.SerializerMethodField()
+    submitted_applications = serializers.SerializerMethodField()
+    first_speaker = serializers.SerializerMethodField()
 
-    # поменяла порядок полей, чтобы название ивента было выше, а вложенные объекты ниже
     class Meta:
         model = Event
+        fields = [
+            "id",
+            "name",
+            "is_deleted",
+            "is_registrated",
+            "submitted_applications",
+            "first_speaker",
+            "organization",
+            "description",
+            "status",
+            "format",
+            "created",
+            "start_time",
+            "end_time",
+            "cost",
+            "city",
+            "place",
+            "participant_offline_limit",
+            "participant_online_limit",
+            "registration_deadline",
+            "livestream_link",
+            "additional_materials_link",
+            "image",
+            "is_featured",
+            "is_featured_on_yandex_afisha",
+            "event_type",
+            "specializations",
+        ]
+
+    @classmethod
+    def setup_eager_loading(cls, queryset, user):
+        """Performs necessary eager loading of events."""
+        if user.is_anonymous:
+            return queryset.select_related(
+                "event_type", "specializations", "city"
+            ).prefetch_related(
+                "applications",
+                Prefetch("parts", queryset=EventPart.objects.select_related("speaker")),
+            )
+        return (
+            queryset.select_related("event_type", "specializations", "city")
+            .prefetch_related(
+                "applications",
+                Prefetch("parts", queryset=EventPart.objects.select_related("speaker")),
+            )
+            .annotate(
+                is_registrated=Exists(
+                    Application.objects.filter(user=user, event=OuterRef("id"))
+                )
+            )
+        )
+
+    def get_is_registrated(self, obj) -> bool:
+        """Shows the authorized user whether this user has registered for the event."""
+        request = self.context.get("request")
+        if not request or request.user.is_anonymous:
+            return False
+        return obj.is_registrated
+
+    def get_submitted_applications(self, obj) -> int:
+        """Shows the number of applications submitted to participate in the event."""
+        return obj.applications.count()
+
+    @swagger_serializer_method(SpeakerSerializer)
+    def get_first_speaker(self, obj):
+        """Shows the speaker of the first presentation of the event."""
+        if obj.parts:
+            speakers = [part.speaker for part in obj.parts.all() if part.speaker]
+            if speakers:
+                return SpeakerSerializer(speakers[0]).data
+        return None
+
+
+class EventDetailSerializer(EventListSerializer):
+    """Serializer to retrieve one event."""
+
+    event_parts = EventPartSerializer(many=True, source="parts")
+
+    class Meta(EventListSerializer.Meta):
         fields = [
             "id",
             "name",
@@ -174,35 +246,10 @@ class EventSerializer(serializers.ModelSerializer):
             "event_parts",
         ]
 
-    @classmethod
-    def setup_eager_loading(cls, queryset, user):
-        """Performs necessary eager loading of events."""
-        if user.is_anonymous:
-            return queryset.select_related(
-                "event_type", "specializations", "city"
-            ).prefetch_related(
-                Prefetch("parts", queryset=EventPart.objects.select_related("speaker"))
-            )
-        return (
-            queryset.select_related("event_type", "specializations", "city")
-            .prefetch_related(
-                Prefetch("parts", queryset=EventPart.objects.select_related("speaker"))
-            )
-            .annotate(
-                is_registrated=Exists(
-                    Application.objects.filter(user=user, event=OuterRef("id"))
-                )
-            )
-        )
 
-    def get_is_registrated(self, obj) -> bool:
-        """Shows the authorized user whether this user has registered for the event."""
-        request = self.context.get("request")
-        if not request or request.user.is_anonymous:
-            return False
-        return obj.is_registrated
-
-
+# TODO: сделать валидацию (метод validate в сериализаторе создания/редактирования нового
+# ивента), что если формат ивента офлайн или гибрид, то поля city и place должны быть
+# заполнены
 class EventCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating an event."""
 

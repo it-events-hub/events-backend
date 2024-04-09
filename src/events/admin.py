@@ -66,6 +66,7 @@ class EventAdmin(admin.ModelAdmin):
         "participant_online_limit",
         "start_time",
         "cost",
+        "submitted_applications",
     ]
     list_display_links = ["name"]
     search_fields = ["name"]
@@ -84,7 +85,14 @@ class EventAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
-        return queryset.select_related("city", "event_type", "specializations")
+        return queryset.select_related(
+            "city", "event_type", "specializations"
+        ).prefetch_related("applications")
+
+    @admin.display(description="Заявки")
+    def submitted_applications(self, obj):
+        """Shows the number of applications submitted to participate in the event."""
+        return obj.applications.count()
 
 
 @admin.register(EventPart)
@@ -98,11 +106,10 @@ class EventPartAdmin(admin.ModelAdmin):
         "presentation_type",
         "start_time",
         "event",
-        "is_deleted",
     ]
     list_display_links = ["name"]
     search_fields = ["name", "event__name", "speaker__name"]
-    list_filter = ["is_deleted", "start_time", "presentation_type"]
+    list_filter = ["start_time", "presentation_type"]
     ordering = ["pk"]
 
     def get_queryset(self, request):

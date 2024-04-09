@@ -47,7 +47,7 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "email")
 
     def update(self, instance: User, validated_data: dict) -> User:
-        breakpoint()
+        # breakpoint()
         for item in validated_data.items():
             if item[0] in [
                 "specializations",
@@ -59,7 +59,7 @@ class UserSerializer(serializers.ModelSerializer):
         instance.save()
 
         if "specializations" in validated_data:
-            breakpoint()
+            # breakpoint()
             specializations: dict = validated_data.pop("specializations")
             User.specializations.through.filter(user=instance).delete()
             specs = [

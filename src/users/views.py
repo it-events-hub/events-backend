@@ -33,14 +33,14 @@ class UserModelViewSet(
             return ActivationSerializer
         return UserSerializer
 
-    def perform_create(self, serializer) -> None:
-        """Create user and send activation email."""
-        user_email = self.request.data["email"]
-        serializer.save(email=user_email)
+    # def perform_create(self, serializer) -> None:
+    #     """Create user and send activation email."""
+    #     user_email = self.request.data["email"]
+    #     serializer.save(email=user_email)
 
-        user = User.objects.get(email=user_email)
-        context = {"user": user}
-        email.ActivationEmail(self.request, context).send([user_email])
+    #     user = User.objects.get(email=user_email)
+    #     context = {"user": user}
+    #     email.ActivationEmail(self.request, context).send([user_email])
 
     @action(
         methods=["post"],
@@ -87,7 +87,7 @@ class UserModelViewSet(
     @me.mapping.patch
     def patch_me(self, request) -> Response:
         """Update current user's data."""
-        breakpoint()
+        # breakpoint()
         instance = request.user
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
