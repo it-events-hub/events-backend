@@ -8,7 +8,11 @@ from rest_framework.viewsets import ModelViewSet
 
 from .models import Event
 from .schemas import EVENT_LIST_DESCRIPTION, EVENT_LIST_FILTERS, EVENT_LIST_RESPONSES
-from .serializers import EventCreateSerializer, EventSerializer
+from .serializers import (
+    EventCreateSerializer,
+    EventDetailSerializer,
+    EventListSerializer,
+)
 from api.filters import EventsFilter
 from api.pagination import CustomPageNumberPagination
 
@@ -37,7 +41,6 @@ class EventViewSet(ModelViewSet):
 
     queryset = Event.objects.prefetch_related("event_type", "parts", "specializations")
     http_method_names = ["get", "post", "patch"]
-    serializer_class = EventSerializer
     filter_backends = [rf_filters.DjangoFilterBackend, OrderingFilter]  #
     filterset_class = EventsFilter
     ordering_fields = ["start_time", "name"]
@@ -47,10 +50,12 @@ class EventViewSet(ModelViewSet):
     def get_serializer_class(self):
         if self.action == "create":
             return EventCreateSerializer
-        return EventSerializer
+        if self.action == "retrieve":
+            return EventDetailSerializer
+        return EventListSerializer
 
     def get_queryset(self):
-        return EventSerializer.setup_eager_loading(
+        return EventListSerializer.setup_eager_loading(
             Event.objects.all(), user=self.request.user
         )
 

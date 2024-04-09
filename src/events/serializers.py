@@ -1,4 +1,5 @@
 from django.db.models import Exists, OuterRef, Prefetch
+from drf_yasg.utils import swagger_serializer_method
 from rest_framework import serializers
 
 from .models import City, Event, EventPart, EventType, Speaker
@@ -129,16 +130,15 @@ class EventPartSerializer(serializers.ModelSerializer):
 # TODO: сделать валидацию (метод validate в сериализаторе создания/редактирования нового
 # ивента), что если формат ивента офлайн или гибрид, то поля city и place должны быть
 # заполнены
-class EventSerializer(serializers.ModelSerializer):
+class EventListSerializer(serializers.ModelSerializer):
     """Serializer for handling a list of events."""
 
     event_type = EventTypeSerializer(read_only=True)
     city = CitySerializer(allow_null=True)
     specializations = SpecializationSerializer(read_only=True)
-    event_parts = EventPartSerializer(many=True, source="parts")
     is_registrated = serializers.SerializerMethodField()
+    first_speaker = serializers.SerializerMethodField()
 
-    # поменяла порядок полей, чтобы название ивента было выше, а вложенные объекты ниже
     class Meta:
         model = Event
         fields = [
@@ -146,6 +146,7 @@ class EventSerializer(serializers.ModelSerializer):
             "name",
             "is_deleted",
             "is_registrated",
+            "first_speaker",
             "organization",
             "description",
             "status",
@@ -166,7 +167,6 @@ class EventSerializer(serializers.ModelSerializer):
             "is_featured_on_yandex_afisha",
             "event_type",
             "specializations",
-            "event_parts",
         ]
 
     @classmethod
@@ -196,6 +196,50 @@ class EventSerializer(serializers.ModelSerializer):
         if not request or request.user.is_anonymous:
             return False
         return obj.is_registrated
+
+    @swagger_serializer_method(SpeakerSerializer)
+    def get_first_speaker(self, obj):
+        """Shows the speaker of the first presentation of the event."""
+        if obj.parts:
+            speakers = [part.speaker for part in obj.parts.all() if part.speaker]
+            if speakers:
+                return SpeakerSerializer(speakers[0]).data
+        return None
+
+
+class EventDetailSerializer(EventListSerializer):
+    """Serializer to retrieve one event."""
+
+    event_parts = EventPartSerializer(many=True, source="parts")
+
+    class Meta(EventListSerializer.Meta):
+        fields = [
+            "id",
+            "name",
+            "is_deleted",
+            "is_registrated",
+            "organization",
+            "description",
+            "status",
+            "format",
+            "created",
+            "start_time",
+            "end_time",
+            "cost",
+            "city",
+            "place",
+            "participant_offline_limit",
+            "participant_online_limit",
+            "registration_deadline",
+            "livestream_link",
+            "additional_materials_link",
+            "image",
+            "is_featured",
+            "is_featured_on_yandex_afisha",
+            "event_type",
+            "specializations",
+            "event_parts",
+        ]
 
 
 class EventCreateSerializer(serializers.ModelSerializer):
