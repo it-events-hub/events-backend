@@ -114,7 +114,7 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
         self, user: SimpleLazyObject | None, event: Event
     ) -> ValidationError | None:
         """Checks that the user has not registered twice for the same event."""
-        if user.applications.filter(event=event).exists():
+        if user and user.applications.filter(event=event).exists():
             raise ValidationError(APPLICATION_USER_ALREADY_REGISTERED_ERROR)
 
     def validate_application_email(

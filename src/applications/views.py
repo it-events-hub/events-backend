@@ -149,8 +149,7 @@ class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
         Triggers the authenticated user personal data update if the authenticated user
         change personal data in the application.
         Authomatically fills in the fields of an application of the authenticated user.
-        Triggers notification settings instance creation if the request user is
-        anonymous.
+        Triggers creation of notification settings object if the user is anonymous.
         Triggers event participant limits checking and closure of registration
         if the limits are reached.
         """
@@ -182,8 +181,8 @@ class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
             )
         else:
             serializer.save()
-            created_application_id = serializer.instance.id
-            create_notification_settings(application_pk=created_application_id)
+            created_application = serializer.instance
+            create_notification_settings(application=created_application)
         ApplicationViewSet.check_event_limits_and_close_registration(
             serializer.validated_data["event"]
         )

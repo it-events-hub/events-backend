@@ -16,6 +16,7 @@ from rest_framework.viewsets import GenericViewSet
 
 from .models import User
 from .serializers import UserSerializer, UserUpdateSerializer
+from applications.utils_db_write import create_notification_settings
 
 
 class UserModelViewSet(
@@ -33,6 +34,12 @@ class UserModelViewSet(
         if self.action == "patch_me":
             return UserUpdateSerializer
         return UserSerializer
+
+    def perform_create(self, serializer):
+        """Triggers creation of notification settings object linked to this new user."""
+        serializer.save()
+        created_user = serializer.instance
+        create_notification_settings(user=created_user)
 
     @action(methods=["post"], detail=False)
     def resend_activation(self, request) -> Response:
