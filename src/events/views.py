@@ -68,7 +68,6 @@ class EventViewSet(ModelViewSet):
         if serializer.is_valid():
             instance.is_deleted = is_deleted
             instance.save()
-            serializer.save()
             response_serializer = EventDetailSerializer(instance)
             return Response(response_serializer.data, status=HTTP_200_OK)
         return Response(serializer.errors, status=HTTP_400_BAD_REQUEST)
@@ -101,12 +100,14 @@ class EventViewSet(ModelViewSet):
         """
         now = timezone.now()
         specializations = request.user.specializations.all()
-        all_future_events = (
+        all_future_events = list(
             self.get_queryset().filter(start_time__gt=now).order_by("start_time")
         )
-        recommended_future_events = list(
-            all_future_events.filter(specializations__in=specializations)
-        )
+        recommended_future_events = [
+            event
+            for event in all_future_events
+            if event.specializations in specializations
+        ]
         if len(recommended_future_events) >= 3:
             result = recommended_future_events[:3]
         else:
