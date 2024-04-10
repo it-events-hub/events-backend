@@ -316,6 +316,7 @@ class NotificationSettingsSerializer(serializers.ModelSerializer):
         read_only=True,
         label=NotificationSettings._meta.get_field("application").verbose_name,
     )
+    telegram_present = serializers.SerializerMethodField()
 
     class Meta:
         model = NotificationSettings
@@ -327,7 +328,17 @@ class NotificationSettingsSerializer(serializers.ModelSerializer):
             "sms_notifications",
             "telegram_notifications",
             "phone_call_notifications",
+            "telegram_present",
         ]
+
+    def get_telegram_present(self, obj) -> bool:
+        """
+        Shows whether Telegram is present in the data of registrated user or
+        in the application of anonymous visitor.
+        """
+        if obj.user:
+            return bool(obj.user.telegram)
+        return bool(obj.application.telegram)
 
     @transaction.atomic
     def update(self, instance, validated_data):
