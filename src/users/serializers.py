@@ -1,3 +1,4 @@
+from django.db import transaction
 from rest_framework import serializers
 
 from .models import Specialization, User
@@ -75,6 +76,7 @@ class UserUpdateSerializer(UserSerializer):
             "specializations",
         )
 
+    @transaction.atomic
     def update(self, instance: User, validated_data: dict) -> User:
         if validated_data.get("specializations") is not None:
             specializations: dict = validated_data.pop("specializations")

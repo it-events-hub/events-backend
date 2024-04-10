@@ -1,5 +1,6 @@
 from typing import Any
 
+from django.db import transaction
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 from rest_framework import serializers
@@ -19,6 +20,9 @@ from .utils import (
     APPLICATION_FORMAT_REQUIRED_ERROR,
     APPLICATION_SPECIALIZATIONS_REQUIRED_ERROR,
     APPLICATION_USER_ALREADY_REGISTERED_ERROR,
+    NOTIFICATION_SETTINGS_ID_FIELD_LABEL,
+    NOTIFICATION_SETTINGS_TELEGRAM_ANONYMOUS_ERROR,
+    NOTIFICATION_SETTINGS_TELEGRAM_AUTHORIZED_ERROR,
     check_another_user_email,
     check_another_user_phone,
     check_another_user_telegram,
@@ -37,6 +41,9 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
         choices=User.ACTIVITY_CHOISES,
         label=Application._meta.get_field("activity").verbose_name,
         required=False,
+    )
+    notification_settings_id = serializers.SerializerMethodField(
+        label=NOTIFICATION_SETTINGS_ID_FIELD_LABEL
     )
 
     class Meta:
@@ -59,7 +66,14 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
             "position",
             "experience_years",
             "specializations",
+            "notification_settings_id",
         ]
+
+    def get_notification_settings_id(self, obj) -> int:
+        """Shows object NotificationSettings ID."""
+        if obj.user:
+            return obj.user.notification_settings.id
+        return obj.notification_settings.id
 
     def validate_birth_date(self, value):
         """Validates birth date."""
@@ -314,3 +328,23 @@ class NotificationSettingsSerializer(serializers.ModelSerializer):
             "telegram_notifications",
             "phone_call_notifications",
         ]
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        """
+        Checks for the presence of telegram when trying to turn on
+        telegram notifications.
+        """
+        telegram_notifications = validated_data.get(
+            "telegram_notifications", "not present"
+        )
+        if telegram_notifications != "not present" and telegram_notifications:
+            if instance.application and not instance.application.telegram:
+                raise ValidationError(NOTIFICATION_SETTINGS_TELEGRAM_ANONYMOUS_ERROR)
+            if instance.user and not instance.user.telegram:
+                raise ValidationError(NOTIFICATION_SETTINGS_TELEGRAM_AUTHORIZED_ERROR)
+
+        for field in validated_data:
+            setattr(instance, field, validated_data[field])
+        instance.save()
+        return instance
