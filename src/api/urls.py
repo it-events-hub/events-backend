@@ -4,7 +4,7 @@ from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 from rest_framework.routers import DefaultRouter
 
-from applications.views import ApplicationViewSet, NotificationSettingsAPIView
+from applications.views import ApplicationViewSet, NotificationSettingsViewSet
 from events.views import EventViewSet
 from users.views import UserModelViewSet
 
@@ -14,11 +14,11 @@ router = DefaultRouter()
 router.register("users", UserModelViewSet, "users")
 router.register("events", EventViewSet, "events")
 router.register("applications", ApplicationViewSet)
+router.register("notification-settings", NotificationSettingsViewSet)
 
 urlpatterns = [
     path("", include(router.urls)),
     path("auth/", include("djoser.urls.jwt")),
-    path("notification_settings/<int:pk>/", NotificationSettingsAPIView.as_view()),
 ]
 
 schema_view = get_schema_view(

@@ -2,8 +2,12 @@ from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.utils.functional import SimpleLazyObject
-from rest_framework.generics import UpdateAPIView
-from rest_framework.mixins import CreateModelMixin, DestroyModelMixin
+from rest_framework.mixins import (
+    CreateModelMixin,
+    DestroyModelMixin,
+    RetrieveModelMixin,
+    UpdateModelMixin,
+)
 from rest_framework.viewsets import GenericViewSet
 
 from .models import Application, NotificationSettings
@@ -266,9 +270,9 @@ class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
         event.save()
 
 
-class NotificationSettingsAPIView(UpdateAPIView):
+class NotificationSettingsViewSet(RetrieveModelMixin, UpdateModelMixin, GenericViewSet):
     """APIView to edit NotificationSettings by PATCH-requests."""
 
     queryset = NotificationSettings.objects.all()
     serializer_class = NotificationSettingsSerializer
-    http_method_names = ["patch"]
+    http_method_names = ["get", "patch"]
