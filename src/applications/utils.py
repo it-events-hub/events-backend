@@ -63,6 +63,9 @@ APPLICATION_EVENT_ONLINE_CLOSED_ERROR: str = (
 APPLICATION_USER_ALREADY_REGISTERED_ERROR: str = (
     "Данный пользователь уже зарегистрирован на данное мероприятие."
 )
+APPLICATION_EVENT_IS_DELETED_ERROR: str = (
+    "Данное мероприятие деактивировано, на него невозможно зарегистрироваться."
+)
 NOTIFICATION_SETTINGS_TELEGRAM_ANONYMOUS_ERROR: str = (
     "Вы не указали телеграм в заявке, поэтому подключение уведомлений в телеграм "
     "невозможно."

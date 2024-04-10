@@ -197,10 +197,6 @@ DJOSER = {
         "user": "users.serializers.UserSerializer",
         "current_user": "users.serializers.UserSerializer",
     },
-    "PERMISSIONS": {
-        # TODO: Add permissions
-    },
-    "HIDE_USERS": False,
 }
 
 # DRF-yasg Swagger settings (JWT-tokens)

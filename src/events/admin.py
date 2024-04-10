@@ -46,11 +46,9 @@ class EventAdmin(admin.ModelAdmin):
         "is_deleted",
         "status",
         "format",
-        "city",
         "participant_offline_limit",
         "participant_online_limit",
         "start_time",
-        "cost",
         "submitted_applications",
     ]
     list_display_links = ["name"]

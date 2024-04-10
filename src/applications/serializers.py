@@ -12,6 +12,7 @@ from .utils import (
     APPLICATION_ACTIVITY_AUTHORIZED_ERROR,
     APPLICATION_EVENT_CLOSED_ERROR,
     APPLICATION_EVENT_EMAIL_UNIQUE_ERROR,
+    APPLICATION_EVENT_IS_DELETED_ERROR,
     APPLICATION_EVENT_OFFLINE_CLOSED_ERROR,
     APPLICATION_EVENT_ONLINE_CLOSED_ERROR,
     APPLICATION_EVENT_PHONE_UNIQUE_ERROR,
@@ -91,6 +92,13 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
         """
         if event.start_time < timezone.now():
             raise ValidationError(APPLICATION_EVENT_STARTTIME_ERROR)
+
+    def validate_application_event_is_deleted(
+        self, event: Event
+    ) -> ValidationError | None:
+        """Checks that the application has not been submitted for deactivated event."""
+        if event.is_deleted:
+            raise ValidationError(APPLICATION_EVENT_IS_DELETED_ERROR)
 
     def validate_application_format(
         self, event: Event, attrs: dict[str, Any]
@@ -266,6 +274,7 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
         event: Event = attrs["event"]
 
         self.validate_application_event_start_time(event)
+        self.validate_application_event_is_deleted(event)
         self.validate_application_format(event, attrs)
         self.validate_application_user(user, event)
         self.validate_application_email(attrs, user)
