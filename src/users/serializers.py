@@ -2,17 +2,6 @@ from rest_framework import serializers
 
 from .models import Specialization, User
 
-# class PasswordSerializer(serializers.ModelSerializer):
-#     new_password = serializers.CharField(required=True)
-#     old_password = serializers.CharField(required=True)
-#
-#     class Meta:
-#         model = User
-#         fields = (
-#             "new_password",
-#             "old_password",
-#         )
-
 
 class SpecializationSerializer(serializers.ModelSerializer):
     """Serializer to display specializations."""
