@@ -230,7 +230,6 @@ class EventDetailSerializer(EventListSerializer):
             "is_deleted",
             "is_registrated",
             "submitted_applications",
-            "first_speaker",
             "organization",
             "description",
             "status",

@@ -17,6 +17,8 @@ class EventsFilter(rf_filters.FilterSet):
 
     The filter for the 'name' field works on case-insensitive partial occurrence.
     The 'is_deleted' filter takes boolean values - True/False.
+    The 'is_featured' filter takes True, False, 0 and 1 as value, otherwise
+    returns all the events.
     The 'is_registrated' filter takes 0 as False and 1 as True.
     The 'not_started' filter takes True, False, 0 and 1 as value, otherwise
     returns all the events.
@@ -47,6 +49,7 @@ class EventsFilter(rf_filters.FilterSet):
         fields = [
             "name",
             "is_deleted",
+            "is_featured",
             "is_registrated",
             "not_started",
             "status",

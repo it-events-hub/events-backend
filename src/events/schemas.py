@@ -45,6 +45,16 @@ EVENT_LIST_FILTERS = [
         type=openapi.TYPE_BOOLEAN,
     ),
     openapi.Parameter(
+        "is_featured",
+        openapi.IN_QUERY,
+        description=(
+            "Shows events that we promote on the Main page. Takes True, False, 0 and 1 "
+            "as input values, otherwise returns all the events. Input examples: "
+            "?is_featured=True, ?is_featured=0 (0 means False)"
+        ),
+        type=openapi.TYPE_BOOLEAN,
+    ),
+    openapi.Parameter(
         "status",
         openapi.IN_QUERY,
         description=(
