@@ -22,7 +22,45 @@ class EventClosureController:
     """
 
     @staticmethod
-    def check_offline_event_limit(event: Event) -> bool:
+    def check_event_limits_and_close_registration(event: Event) -> None:
+        """
+        Checks event participant limits and closes registration if limits are reached.
+        """
+        previous_event_status: str = event.status
+
+        if EventClosureController._hybrid_event_offline_limit_reached_online_limit_not(
+            event
+        ):
+            event.status = Event.STATUS_OFFLINE_CLOSED
+
+        elif (
+            EventClosureController._hybrid_event_online_limit_reached_offline_limit_not(
+                event
+            )
+        ):
+            event.status = Event.STATUS_ONLINE_CLOSED
+
+        elif (
+            EventClosureController._offline_event_limit_reached(event)
+            or EventClosureController._online_event_limit_reached(event)
+            or (
+                event.status == Event.STATUS_OFFLINE_CLOSED
+                and EventClosureController._hybrid_event_online_limit_reached(event)
+            )
+            or (
+                event.status == Event.STATUS_ONLINE_CLOSED
+                and EventClosureController._hybrid_event_offline_limit_reached(event)
+            )
+        ):
+            event.status = Event.STATUS_CLOSED
+
+        event.save()
+
+        if event.status != previous_event_status:
+            logger.debug(f"The status of event {event} was changed to {event.status}")
+
+    @staticmethod
+    def _offline_event_limit_reached(event: Event) -> bool:
         """Checks if the participant limit for the offline event is reached."""
         return (
             event.format == Event.FORMAT_OFFLINE
@@ -32,7 +70,7 @@ class EventClosureController:
         )
 
     @staticmethod
-    def check_online_event_limit(event: Event) -> bool:
+    def _online_event_limit_reached(event: Event) -> bool:
         """Checks if the participant limit for the online event is reached."""
         return (
             event.format == Event.FORMAT_ONLINE
@@ -42,7 +80,7 @@ class EventClosureController:
         )
 
     @staticmethod
-    def check_hybrid_event_offline_reached_online_not(event: Event) -> bool:
+    def _hybrid_event_offline_limit_reached_online_limit_not(event: Event) -> bool:
         """
         Checks that the offline participant limit has been reached and
         the online participant limit has not been reached.
@@ -61,7 +99,7 @@ class EventClosureController:
         return offline_limit_reached and online_limit_not_reached
 
     @staticmethod
-    def check_hybrid_event_online_reached_offline_not(event: Event) -> bool:
+    def _hybrid_event_online_limit_reached_offline_limit_not(event: Event) -> bool:
         """
         Checks that the online participant limit has been reached and
         the offline participant limit has not been reached.
@@ -80,7 +118,7 @@ class EventClosureController:
         return online_limit_reached and offline_limit_not_reached
 
     @staticmethod
-    def check_hybrid_event_offline_limit(event: Event) -> bool:
+    def _hybrid_event_offline_limit_reached(event: Event) -> bool:
         """Checks if the participant offline limit for the hybrid event is reached."""
         return (
             event.format == Event.FORMAT_HYBRID
@@ -90,7 +128,7 @@ class EventClosureController:
         )
 
     @staticmethod
-    def check_hybrid_event_online_limit(event: Event) -> bool:
+    def _hybrid_event_online_limit_reached(event: Event) -> bool:
         """Checks if the participant online limit for the hybrid event is reached."""
         return (
             event.format == Event.FORMAT_HYBRID
@@ -98,35 +136,6 @@ class EventClosureController:
             and event.applications.filter(format=Event.FORMAT_ONLINE).count()
             >= event.participant_online_limit
         )
-
-    @staticmethod
-    def check_event_limits_and_close_registration(event: Event) -> None:
-        """
-        Checks event participant limits and closes registration if limits are reached.
-        """
-        previous_event_status: str = event.status
-        if EventClosureController.check_hybrid_event_offline_reached_online_not(event):
-            event.status = Event.STATUS_OFFLINE_CLOSED
-        elif EventClosureController.check_hybrid_event_online_reached_offline_not(
-            event
-        ):
-            event.status = Event.STATUS_ONLINE_CLOSED
-        elif (
-            EventClosureController.check_offline_event_limit(event)
-            or EventClosureController.check_online_event_limit(event)
-            or (
-                event.status == Event.STATUS_OFFLINE_CLOSED
-                and EventClosureController.check_hybrid_event_online_limit(event)
-            )
-            or (
-                event.status == Event.STATUS_ONLINE_CLOSED
-                and EventClosureController.check_hybrid_event_offline_limit(event)
-            )
-        ):
-            event.status = Event.STATUS_CLOSED
-        event.save()
-        if event.status != previous_event_status:
-            logger.debug(f"The status of event {event} was changed to {event.status}")
 
 
 class EventReopeningController:

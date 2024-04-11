@@ -260,8 +260,7 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         """
         Validates start_time, format, user, email, phone, telegram, activity and
-        specializations. Replaces the format with the correct one if the event has
-        a strict format.
+        specializations.
         """
         user: SimpleLazyObject | None = (
             self.context["request"].user
