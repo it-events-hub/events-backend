@@ -41,7 +41,7 @@ class ApplicationViewSet(
         return ApplicationCreateAnonymousSerializer
 
     @staticmethod
-    def update_authenticated_user_personal_data(
+    def _update_authenticated_user_personal_data(
         user: SimpleLazyObject, validated_data: list[Any]
     ) -> None:
         """
@@ -88,7 +88,7 @@ class ApplicationViewSet(
         """
         user: SimpleLazyObject | AnonymousUser = self.request.user
         if user.is_authenticated:
-            ApplicationViewSet.update_authenticated_user_personal_data(
+            ApplicationViewSet._update_authenticated_user_personal_data(
                 user, serializer.validated_data
             )
             serializer.save(
@@ -116,6 +116,7 @@ class ApplicationViewSet(
             serializer.save()
             created_application = serializer.instance
             create_notification_settings(application=created_application)
+
         EventClosureController.check_event_limits_and_close_registration(
             serializer.validated_data["event"]
         )
@@ -123,7 +124,7 @@ class ApplicationViewSet(
     def perform_destroy(self, instance):
         """
         Deletes the application for participation in the event and re-opens
-        registration for the event, if required.
+        registration for the event, if applicable.
         """
         event = instance.event
         application_format = instance.format
@@ -138,7 +139,7 @@ class ApplicationViewSet(
 
 
 class NotificationSettingsViewSet(RetrieveModelMixin, UpdateModelMixin, GenericViewSet):
-    """APIView to edit NotificationSettings by PATCH-requests."""
+    """APIView to retrieve and edit NotificationSettings objects."""
 
     queryset = NotificationSettings.objects.all()
     serializer_class = NotificationSettingsSerializer

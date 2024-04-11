@@ -67,6 +67,10 @@ class UserUpdateSerializer(UserSerializer):
 
     @transaction.atomic
     def update(self, instance: User, validated_data: dict) -> User:
+        """
+        Creates m2m connections between the user and specializations during
+        PATCH-requests to edit this user.
+        """
         if validated_data.get("specializations") is not None:
             specializations: dict = validated_data.pop("specializations")
             instance.specializations.clear()

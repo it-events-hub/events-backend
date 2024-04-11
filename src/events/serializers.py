@@ -173,7 +173,7 @@ class EventListSerializer(serializers.ModelSerializer):
 
     @classmethod
     def setup_eager_loading(cls, queryset, user):
-        """Performs necessary eager loading of events."""
+        """Performs necessary joins and annotations for eager loading of event list."""
         if user.is_anonymous:
             return queryset.select_related(
                 "event_type", "specializations", "city"
@@ -195,7 +195,9 @@ class EventListSerializer(serializers.ModelSerializer):
         )
 
     def get_is_registrated(self, obj) -> bool:
-        """Shows the authorized user whether this user has registered for the event."""
+        """
+        Shows for the authorized user whether this user has registered for the event.
+        """
         request = self.context.get("request")
         if not request or request.user.is_anonymous:
             return False

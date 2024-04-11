@@ -31,11 +31,10 @@ from api.permissions import IsAdminOrReadOnly
 )
 class EventViewSet(ModelViewSet):
     """
-    ViewSet provides endpoints for listing, creating, retrieving, updating,
-    partially updating, and deactivating events.
+    ViewSet provides endpoints for listing, creating, retrieving, partially updating,
+    activating and deactivating events.
     """
 
-    queryset = Event.objects.prefetch_related("event_type", "parts", "specializations")
     http_method_names = ["get", "post", "patch"]
     filter_backends = [rf_filters.DjangoFilterBackend, OrderingFilter]
     filterset_class = EventsFilter
@@ -62,7 +61,7 @@ class EventViewSet(ModelViewSet):
 
     @staticmethod
     def _change_event_status(request, instance, is_deleted):
-        """Change the status of a spicific event."""
+        """Change the status of a specific event."""
         data = {"is_deleted": is_deleted}
         serializer = EventDeactivationSerializer(instance, data=data)
         if serializer.is_valid():
