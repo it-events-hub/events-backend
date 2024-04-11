@@ -1,6 +1,8 @@
+from django.db import transaction
 from rest_framework import serializers
 
 from .models import Specialization, User
+from applications.serializers import NotificationSettingsSerializer
 
 
 class SpecializationSerializer(serializers.ModelSerializer):
@@ -17,6 +19,7 @@ class UserSerializer(serializers.ModelSerializer):
     """Serializer to display data in the user's personal account."""
 
     specializations = SpecializationSerializer(many=True)
+    notification_settings = NotificationSettingsSerializer()
 
     class Meta:
         model = User
@@ -34,34 +37,45 @@ class UserSerializer(serializers.ModelSerializer):
             "position",
             "experience_years",
             "specializations",
+            "notification_settings",
         )
-        read_only_fields = ("id", "email")
 
 
 class UserUpdateSerializer(UserSerializer):
     """Serializer to update data in the user's personal account."""
 
     specializations = serializers.PrimaryKeyRelatedField(
-        queryset=Specialization.objects.all(), many=True
+        queryset=Specialization.objects.all(), many=True, required=False
     )
 
     class Meta(UserSerializer.Meta):
-        pass
+        fields = (
+            "id",
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "telegram",
+            "birth_date",
+            "city",
+            "activity",
+            "company",
+            "position",
+            "experience_years",
+            "specializations",
+        )
 
+    @transaction.atomic
     def update(self, instance: User, validated_data: dict) -> User:
-        for item in validated_data.items():
-            if item[0] in [
-                "specializations",
-                "id",
-                "email",
-            ]:
-                continue
-            instance.__dict__[item[0]] = item[1]
-        instance.save()
-
-        if "specializations" in validated_data:
+        """
+        Creates m2m connections between the user and specializations during
+        PATCH-requests to edit this user.
+        """
+        if validated_data.get("specializations") is not None:
             specializations: dict = validated_data.pop("specializations")
             instance.specializations.clear()
             instance.specializations.set(specializations)
-
+        for field in validated_data:
+            setattr(instance, field, validated_data[field])
+        instance.save()
         return instance

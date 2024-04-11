@@ -11,6 +11,7 @@ from .utils import (
     APPLICATION_ACTIVITY_AUTHORIZED_ERROR,
     APPLICATION_EVENT_CLOSED_ERROR,
     APPLICATION_EVENT_EMAIL_UNIQUE_ERROR,
+    APPLICATION_EVENT_IS_DELETED_ERROR,
     APPLICATION_EVENT_OFFLINE_CLOSED_ERROR,
     APPLICATION_EVENT_ONLINE_CLOSED_ERROR,
     APPLICATION_EVENT_PHONE_UNIQUE_ERROR,
@@ -19,6 +20,7 @@ from .utils import (
     APPLICATION_FORMAT_REQUIRED_ERROR,
     APPLICATION_SPECIALIZATIONS_REQUIRED_ERROR,
     APPLICATION_USER_ALREADY_REGISTERED_ERROR,
+    NOTIFICATION_SETTINGS_ID_FIELD_LABEL,
     check_another_user_email,
     check_another_user_phone,
     check_another_user_telegram,
@@ -37,6 +39,9 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
         choices=User.ACTIVITY_CHOISES,
         label=Application._meta.get_field("activity").verbose_name,
         required=False,
+    )
+    notification_settings_id = serializers.SerializerMethodField(
+        label=NOTIFICATION_SETTINGS_ID_FIELD_LABEL
     )
 
     class Meta:
@@ -59,7 +64,14 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
             "position",
             "experience_years",
             "specializations",
+            "notification_settings_id",
         ]
+
+    def get_notification_settings_id(self, obj) -> int:
+        """Shows object NotificationSettings ID."""
+        if obj.user:
+            return obj.user.notification_settings.id
+        return obj.notification_settings.id
 
     def validate_birth_date(self, value):
         """Validates birth date."""
@@ -77,6 +89,13 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
         """
         if event.start_time < timezone.now():
             raise ValidationError(APPLICATION_EVENT_STARTTIME_ERROR)
+
+    def validate_application_event_is_deleted(
+        self, event: Event
+    ) -> ValidationError | None:
+        """Checks that the application has not been submitted for deactivated event."""
+        if event.is_deleted:
+            raise ValidationError(APPLICATION_EVENT_IS_DELETED_ERROR)
 
     def validate_application_format(
         self, event: Event, attrs: dict[str, Any]
@@ -114,7 +133,7 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
         self, user: SimpleLazyObject | None, event: Event
     ) -> ValidationError | None:
         """Checks that the user has not registered twice for the same event."""
-        if user.applications.filter(event=event).exists():
+        if user and user.applications.filter(event=event).exists():
             raise ValidationError(APPLICATION_USER_ALREADY_REGISTERED_ERROR)
 
     def validate_application_email(
@@ -241,8 +260,7 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         """
         Validates start_time, format, user, email, phone, telegram, activity and
-        specializations. Replaces the format with the correct one if the event has
-        a strict format.
+        specializations.
         """
         user: SimpleLazyObject | None = (
             self.context["request"].user
@@ -252,6 +270,7 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
         event: Event = attrs["event"]
 
         self.validate_application_event_start_time(event)
+        self.validate_application_event_is_deleted(event)
         self.validate_application_format(event, attrs)
         self.validate_application_user(user, event)
         self.validate_application_email(attrs, user)
@@ -302,6 +321,7 @@ class NotificationSettingsSerializer(serializers.ModelSerializer):
         read_only=True,
         label=NotificationSettings._meta.get_field("application").verbose_name,
     )
+    telegram_present = serializers.SerializerMethodField()
 
     class Meta:
         model = NotificationSettings
@@ -313,4 +333,20 @@ class NotificationSettingsSerializer(serializers.ModelSerializer):
             "sms_notifications",
             "telegram_notifications",
             "phone_call_notifications",
+            "telegram_present",
         ]
+
+    def get_telegram_present(self, obj) -> bool:
+        """
+        Shows whether Telegram is present in the data of registrated user or
+        in the application of anonymous visitor.
+        """
+        if obj.user:
+            return bool(obj.user.telegram)
+        return bool(obj.application.telegram)
+
+
+class DestroyObjectSuccessSerializer(serializers.Serializer):
+    """Serializer to provide some json response after objects deletion."""
+
+    message = serializers.CharField()

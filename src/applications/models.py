@@ -41,15 +41,9 @@ class Source(models.Model):
         return self.name
 
 
-# TODO: в Админке не работает обновление specializations зареганного юзера при их
-# изменении в заявке, это работает только на уровне апи. В Админке обновления
-# specializations не сохраняются, даже если создавать их в методе save. Celery task?
 # TODO: При внесении изменений в данные профиля нужно будет обновлять их и во всех
 # заявках данного пользователя (заявки на мероприятия, где is_event_started=False),
 # это тоже будет на уровне апи, включая изменения specializations.
-# TODO: если заявка анонима создается через Админку, то NotificationSettings для нее не
-# создается. Возможно тут поможет Celery: на уровне апи создаем NotificationSettings
-# синхронно, а если заявка создана в Админке, то создаем его асинхронно.
 class Application(models.Model):
     """Model for storing applications for participation in events."""
 

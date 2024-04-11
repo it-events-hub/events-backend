@@ -42,10 +42,6 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", default="").split()
 
 CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", default="").split()
 
-# For django-debug-toolbar
-if MODE == "dev":
-    INTERNAL_IPS = ["127.0.0.1"]
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -62,13 +58,13 @@ INSTALLED_APPS = [
     "applications.apps.ApplicationsConfig",
     "api.apps.ApiConfig",
     # Third parties apps
-    "debug_toolbar",
     "rest_framework",
     "drf_standardized_errors",
     "corsheaders",
     "drf_yasg",
     "djoser",
     "django_filters",
+    "silk",
 ]
 
 MIDDLEWARE = [
@@ -80,8 +76,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "debug_toolbar.middleware.DebugToolbarMiddleware",
-    "querycount.middleware.QueryCountMiddleware",
+    "silk.middleware.SilkyMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -202,10 +197,6 @@ DJOSER = {
         "user": "users.serializers.UserSerializer",
         "current_user": "users.serializers.UserSerializer",
     },
-    "PERMISSIONS": {
-        # TODO: Add permissions
-    },
-    "HIDE_USERS": False,
 }
 
 # DRF-yasg Swagger settings (JWT-tokens)
@@ -216,10 +207,10 @@ SWAGGER_SETTINGS = {
     }
 }
 
-# Querycount settings. See https://github.com/bradmontgomery/django-querycount
-# DISPLAY_DUPLICATES - how many duplicated queries to display (None or integer)
+# Django-silk settings. See https://github.com/jazzband/django-silk
 
-QUERYCOUNT = {"DISPLAY_DUPLICATES": None}
+SILKY_AUTHENTICATION = True  # User must login
+SILKY_AUTHORISATION = True  # User must have permissions
 
 # CORS settings for frontend development
 
@@ -241,5 +232,6 @@ EMAIL_HOST = os.getenv("EMAIL_HOST")
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 EMAIL_PORT = os.getenv("EMAIL_PORT")
+# TODO: убрать закомментированный код перед финальной сдачей работы на проверку
 # EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"

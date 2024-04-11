@@ -63,6 +63,21 @@ APPLICATION_EVENT_ONLINE_CLOSED_ERROR: str = (
 APPLICATION_USER_ALREADY_REGISTERED_ERROR: str = (
     "Данный пользователь уже зарегистрирован на данное мероприятие."
 )
+APPLICATION_EVENT_IS_DELETED_ERROR: str = (
+    "Данное мероприятие деактивировано, на него невозможно зарегистрироваться."
+)
+NOTIFICATION_SETTINGS_TELEGRAM_ANONYMOUS_ERROR: str = (
+    "Вы не указали телеграм в заявке, поэтому подключение уведомлений в телеграм "
+    "невозможно."
+)
+NOTIFICATION_SETTINGS_TELEGRAM_AUTHORIZED_ERROR: str = (
+    "Чтобы подключить уведомления в телеграм, укажите телеграм в Личном кабинете."
+)
+NOTIFICATION_SETTINGS_ID_FIELD_LABEL: str = (
+    "ID объекта настроек уведомлений, подключенного к данной заявке (если заявка "
+    "создана от имени от анонимного посетителя) или к пользователю, подавшему данную "
+    "заявку (если заявка создана от имени зарегистрированного пользователя)"
+)
 
 
 def check_another_user_email(

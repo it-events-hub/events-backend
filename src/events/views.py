@@ -31,11 +31,10 @@ from api.permissions import IsAdminOrReadOnly
 )
 class EventViewSet(ModelViewSet):
     """
-    ViewSet provides endpoints for listing, creating, retrieving, updating,
-    partially updating, and deactivating events.
+    ViewSet provides endpoints for listing, creating, retrieving, partially updating,
+    activating and deactivating events.
     """
 
-    queryset = Event.objects.prefetch_related("event_type", "parts", "specializations")
     http_method_names = ["get", "post", "patch"]
     filter_backends = [rf_filters.DjangoFilterBackend, OrderingFilter]
     filterset_class = EventsFilter
@@ -62,13 +61,12 @@ class EventViewSet(ModelViewSet):
 
     @staticmethod
     def _change_event_status(request, instance, is_deleted):
-        """Change the status of a spicific event."""
+        """Change the status of a specific event."""
         data = {"is_deleted": is_deleted}
         serializer = EventDeactivationSerializer(instance, data=data)
         if serializer.is_valid():
             instance.is_deleted = is_deleted
             instance.save()
-            serializer.save()
             response_serializer = EventDetailSerializer(instance)
             return Response(response_serializer.data, status=HTTP_200_OK)
         return Response(serializer.errors, status=HTTP_400_BAD_REQUEST)
@@ -101,12 +99,14 @@ class EventViewSet(ModelViewSet):
         """
         now = timezone.now()
         specializations = request.user.specializations.all()
-        all_future_events = (
+        all_future_events = list(
             self.get_queryset().filter(start_time__gt=now).order_by("start_time")
         )
-        recommended_future_events = list(
-            all_future_events.filter(specializations__in=specializations)
-        )
+        recommended_future_events = [
+            event
+            for event in all_future_events
+            if event.specializations in specializations
+        ]
         if len(recommended_future_events) >= 3:
             result = recommended_future_events[:3]
         else:

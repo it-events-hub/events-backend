@@ -2,26 +2,34 @@ from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.utils.functional import SimpleLazyObject
-from rest_framework.generics import UpdateAPIView
-from rest_framework.mixins import CreateModelMixin, DestroyModelMixin
+from rest_framework.mixins import (
+    CreateModelMixin,
+    DestroyModelMixin,
+    RetrieveModelMixin,
+    UpdateModelMixin,
+)
 from rest_framework.viewsets import GenericViewSet
 
+from .helpers import (
+    EventClosureController,
+    EventReopeningController,
+    create_notification_settings,
+)
 from .models import Application, NotificationSettings
 from .serializers import (
     ApplicationCreateAnonymousSerializer,
     ApplicationCreateAuthorizedSerializer,
     NotificationSettingsSerializer,
 )
-from .utils_db_write import create_notification_settings
 from api.loggers import logger
+from api.mixins import DestroyWithPayloadMixin
 from api.permissions import IsAuthorOrCreateOnly
-from events.models import Event
 from users.models import Specialization
 
 
-# TODO: Если заявка отменена авторизованным юзером, то открывать регистрацию снова.
-# TODO: Возвращать статус 200 и response body в случае удаления объекта
-class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
+class ApplicationViewSet(
+    CreateModelMixin, DestroyWithPayloadMixin, DestroyModelMixin, GenericViewSet
+):
     """ViewSet to create and delete applications for participation in events."""
 
     queryset = Application.objects.all()
@@ -33,7 +41,7 @@ class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
         return ApplicationCreateAnonymousSerializer
 
     @staticmethod
-    def update_authenticated_user_personal_data(
+    def _update_authenticated_user_personal_data(
         user: SimpleLazyObject, validated_data: list[Any]
     ) -> None:
         """
@@ -68,95 +76,19 @@ class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
             )
         user.save()
 
-    @staticmethod
-    def check_offline_event_limit(event: Event) -> bool:
-        """Checks if the participant limit for the offline event is reached."""
-        return (
-            event.format == Event.FORMAT_OFFLINE
-            and event.participant_offline_limit
-            and event.applications.filter(format=Event.FORMAT_OFFLINE).count()
-            >= event.participant_offline_limit
-        )
-
-    @staticmethod
-    def check_online_event_limit(event: Event) -> bool:
-        """Checks if the participant limit for the online event is reached."""
-        return (
-            event.format == Event.FORMAT_ONLINE
-            and event.participant_online_limit
-            and event.applications.filter(format=Event.FORMAT_ONLINE).count()
-            >= event.participant_online_limit
-        )
-
-    @staticmethod
-    def check_hybrid_event_offline_limit(event: Event) -> bool:
-        """Checks if the participant offline limit for the hybrid event is reached."""
-        return (
-            event.format == Event.FORMAT_HYBRID
-            and event.participant_offline_limit
-            and event.applications.filter(format=Event.FORMAT_OFFLINE).count()
-            >= event.participant_offline_limit
-        )
-
-    @staticmethod
-    def check_hybrid_event_online_limit(event: Event) -> bool:
-        """Checks if the participant online limit for the hybrid event is reached."""
-        return (
-            event.format == Event.FORMAT_HYBRID
-            and event.participant_online_limit
-            and event.applications.filter(format=Event.FORMAT_ONLINE).count()
-            >= event.participant_online_limit
-        )
-
-    @staticmethod
-    def check_event_limits_and_close_registration(event: Event) -> None:
-        """
-        Checks event participant limits and closes registration if limits are reached.
-        """
-        if ApplicationViewSet.check_hybrid_event_offline_limit(event):
-            event.status = Event.STATUS_OFFLINE_CLOSED
-            logger.debug(
-                f"The status of event {event} was changed to "
-                f"{Event.STATUS_OFFLINE_CLOSED}"
-            )
-        elif ApplicationViewSet.check_hybrid_event_online_limit(event):
-            event.status = Event.STATUS_ONLINE_CLOSED
-            logger.debug(
-                f"The status of event {event} was changed to "
-                f"{Event.STATUS_ONLINE_CLOSED}"
-            )
-        elif (
-            ApplicationViewSet.check_offline_event_limit(event)
-            or ApplicationViewSet.check_online_event_limit(event)
-            or (
-                event.status == Event.STATUS_OFFLINE_CLOSED
-                and ApplicationViewSet.check_hybrid_event_online_limit(event)
-            )
-            or (
-                event.status == Event.STATUS_ONLINE_CLOSED
-                and ApplicationViewSet.check_hybrid_event_offline_limit(event)
-            )
-        ):
-            event.status = Event.STATUS_CLOSED
-            logger.debug(
-                f"The status of event {event} was changed to {Event.STATUS_CLOSED}"
-            )
-        event.save()
-
     def perform_create(self, serializer):
         """
         Adds the user to the application if the request user is authenticated.
-        Triggers the authenticated user personal data update if the authenticated user
-        change personal data in the application.
+        Triggers the authenticated user's data updating if the user changes this data
+        in the application.
         Authomatically fills in the fields of an application of the authenticated user.
-        Triggers notification settings instance creation if the request user is
-        anonymous.
+        Triggers creation of notification settings object if the user is anonymous.
         Triggers event participant limits checking and closure of registration
         if the limits are reached.
         """
         user: SimpleLazyObject | AnonymousUser = self.request.user
         if user.is_authenticated:
-            ApplicationViewSet.update_authenticated_user_personal_data(
+            ApplicationViewSet._update_authenticated_user_personal_data(
                 user, serializer.validated_data
             )
             serializer.save(
@@ -182,55 +114,17 @@ class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
             )
         else:
             serializer.save()
-            created_application_id = serializer.instance.id
-            create_notification_settings(application_pk=created_application_id)
-        ApplicationViewSet.check_event_limits_and_close_registration(
+            created_application = serializer.instance
+            create_notification_settings(application=created_application)
+
+        EventClosureController.check_event_limits_and_close_registration(
             serializer.validated_data["event"]
         )
 
-    # TODO: отменить заявку может только авторизованный (на входе в эндпойнт удаления
-    # стоит проверка в permission, наверно здесь можно дополнительно не проверять, что
-    # юзер авторизован);
-
-    # ситуация 1: статус ивента "регистрация открыта", тогда не меняем статус ивента
-
-    # DONE ситуация 2: ивент имеет строгий формат и статус был "регистрация закрыта",
-    # тогда после отмены заявки меняем статус ивента на "регистрация открыта"
-
-    # ситуация 3: ивент имеет гибридный формат и статус "регистрация закрыта", тогда
-    # нужно посмотреть, какие лимиты имеет этот ивент (у него может не быть какого-то
-    # типа лимита, ведь эти поля необязательные) и какой формат был у отмененной заявки:
-    # - если у ивента были оба лимита и заявка была офлайн, тогда меняем статус ивента
-    # на "регистрация онлайн закрыта" (то есть возобновляем офлайн-регистрацию)
-    # - если у ивента были оба лимита и заявка была онлайн, тогда меняем статус ивента
-    # на "регистрация офлайн закрыта" (то есть возобновляем онлайн-регистрацию)
-    # - DONE если у ивента был только офлайн-лимит и заявка была офлайн, то меняем
-    # статус на "регистрация открыта"
-    # - если у ивента был только онлайн-лимит и заявка была онлайн, то меняем статус
-    # на "регистрация открыта"
-    # - если у ивента был только офлайн-лимит, а заявка была онлайн, то не меняем статус
-    # - если у ивента был только онлайн-лимит, а заявка была офлайн, то не меняем статус
-    # - если у ивента не было лимитов, то у него и статус должен был все время
-    # оставаться "регистрация открыта", но если админ в Админке вручную поменял статус
-    # на "регистрация закрыта", а потом кто-то отменил заявку, то не меняем статус
-    # ивента автоматически, пусть админ и дальше осуществляет ручное управление статусом
-    # ивента, раз он уже начал вмешиваться в автоматическую смену статусов
-
-    # ситуация 4: ивент имеет гибридный формат, офлайн-лимит и статус "регистрация
-    # офлайн закрыта":
-    # - DONE заявка была офлайн, тогда меняем статус ивента на "регистрация открыта"
-    # - заявка была онлайн, тогда не меняем статус ивента
-
-    # ситуация 5: ивент имеет гибридный формат, онлайн-лимит и статус "регистрация
-    # онлайн закрыта":
-    # - DONE заявка была онлайн, тогда меняем статус ивента на "регистрация открыта"
-    # - заявка была офлайн, тогда не меняем статус ивента
-
-    # TODO: add logging (event status changes)
     def perform_destroy(self, instance):
         """
         Deletes the application for participation in the event and re-opens
-        registration for the event, if required.
+        registration for the event, if applicable.
         """
         event = instance.event
         application_format = instance.format
@@ -239,37 +133,14 @@ class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
             f"The application of user {self.request.user} to participate "
             f"in event {event} was deleted."
         )
-
-        if event.format != Event.FORMAT_HYBRID and event.status == Event.STATUS_CLOSED:
-            event.status = Event.STATUS_OPEN
-        if (
-            event.format == Event.FORMAT_HYBRID
-            and event.participant_offline_limit
-            and event.status == Event.STATUS_OFFLINE_CLOSED
-            and application_format == Event.FORMAT_OFFLINE
-        ):
-            event.status = Event.STATUS_OPEN
-        if (
-            event.format == Event.FORMAT_HYBRID
-            and event.participant_online_limit
-            and event.status == Event.STATUS_ONLINE_CLOSED
-            and application_format == Event.FORMAT_ONLINE
-        ):
-            event.status = Event.STATUS_OPEN
-        if (  # TODO: потестить руками
-            event.format == Event.FORMAT_HYBRID
-            and event.participant_offline_limit
-            and not event.participant_online_limit
-            and event.status == Event.STATUS_CLOSED
-            and application_format == Event.FORMAT_OFFLINE
-        ):
-            event.status = Event.STATUS_OPEN
-        event.save()
+        EventReopeningController.check_event_limits_and_reopen_registration(
+            event, application_format
+        )
 
 
-class NotificationSettingsAPIView(UpdateAPIView):
-    """APIView to edit NotificationSettings by PATCH-requests."""
+class NotificationSettingsViewSet(RetrieveModelMixin, UpdateModelMixin, GenericViewSet):
+    """APIView to retrieve and edit NotificationSettings objects."""
 
     queryset = NotificationSettings.objects.all()
     serializer_class = NotificationSettingsSerializer
-    http_method_names = ["patch"]
+    http_method_names = ["get", "patch"]
