@@ -1,6 +1,5 @@
 from typing import Any
 
-from django.db import transaction
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 from rest_framework import serializers
@@ -22,8 +21,6 @@ from .utils import (
     APPLICATION_SPECIALIZATIONS_REQUIRED_ERROR,
     APPLICATION_USER_ALREADY_REGISTERED_ERROR,
     NOTIFICATION_SETTINGS_ID_FIELD_LABEL,
-    NOTIFICATION_SETTINGS_TELEGRAM_ANONYMOUS_ERROR,
-    NOTIFICATION_SETTINGS_TELEGRAM_AUTHORIZED_ERROR,
     check_another_user_email,
     check_another_user_phone,
     check_another_user_telegram,
@@ -348,28 +345,6 @@ class NotificationSettingsSerializer(serializers.ModelSerializer):
         if obj.user:
             return bool(obj.user.telegram)
         return bool(obj.application.telegram)
-
-    # TODO: кажется надо убрать эту проверку, на этапе MVP будем всегда считать, что мы
-    # знаем телеграм, на который надо отправлять уведомления
-    @transaction.atomic
-    def update(self, instance, validated_data):
-        """
-        Checks for the presence of telegram when trying to turn on
-        telegram notifications.
-        """
-        telegram_notifications = validated_data.get(
-            "telegram_notifications", "not present"
-        )
-        if telegram_notifications != "not present" and telegram_notifications:
-            if instance.application and not instance.application.telegram:
-                raise ValidationError(NOTIFICATION_SETTINGS_TELEGRAM_ANONYMOUS_ERROR)
-            if instance.user and not instance.user.telegram:
-                raise ValidationError(NOTIFICATION_SETTINGS_TELEGRAM_AUTHORIZED_ERROR)
-
-        for field in validated_data:
-            setattr(instance, field, validated_data[field])
-        instance.save()
-        return instance
 
 
 class DestroyObjectSuccessSerializer(serializers.Serializer):
