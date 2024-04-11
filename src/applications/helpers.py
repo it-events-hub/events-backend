@@ -129,48 +129,6 @@ class EventClosureController:
             logger.debug(f"The status of event {event} was changed to {event.status}")
 
 
-# TODO: вынести весь блок методов, открывающих регистрацию, в отдельный файл, logger
-
-# NO CHANGE ситуация 1: статус ивента "регистрация открыта", тогда не меняем статус
-
-# OPEN ситуация 2: ивент имеет строгий формат и статус был "регистрация закрыта",
-# тогда после отмены заявки меняем статус ивента на "регистрация открыта"
-
-# ситуация 3: ивент имеет гибридный формат и статус "регистрация закрыта", тогда
-# нужно посмотреть, какие лимиты имеет этот ивент (у него может не быть какого-то
-# типа лимита, ведь эти поля необязательные) и какой формат был у отмененной заявки:
-
-# 3.1 если у ивента были оба лимита и заявка была офлайн, тогда меняем статус ивента
-# на "регистрация онлайн закрыта" (то есть возобновляем офлайн-регистрацию)
-# 3.2 если у ивента были оба лимита и заявка была онлайн, тогда меняем статус ивента
-# на "регистрация офлайн закрыта" (то есть возобновляем онлайн-регистрацию)
-# 3.3 OPEN если у ивента был только офлайн-лимит и заявка была офлайн, то меняем
-# статус на "регистрация открыта"
-# 3.4 OPEN если у ивента был только онлайн-лимит и заявка была онлайн, то меняем
-# статус на "регистрация открыта"
-# 3.5 NO CHANGE если у ивента был только офлайн-лимит, а заявка была онлайн, то
-# не меняем статус
-# 3.6 NO CHANGE если у ивента был только онлайн-лимит, а заявка была офлайн, то
-# не меняем статус
-# 3.7 NO CHANGE если у ивента не было лимитов, то у него и статус должен был
-# оставаться "регистрация открыта", но если админ в Админке вручную поменял статус
-# на "регистрация закрыта", а потом кто-то отменил заявку, то не меняем статус
-# ивента автоматически, пусть админ и дальше осуществляет ручное управление статусом
-# ивента, раз он уже начал вмешиваться в автоматическую смену статусов
-
-# ситуация 4: ивент имеет гибридный формат, офлайн-лимит и статус "регистрация
-# офлайн закрыта":
-# 4.1 OPEN заявка была офлайн, тогда меняем статус ивента на "регистрация открыта"
-# 4.2 NO CHANGE заявка была онлайн, тогда не меняем статус ивента
-
-# ситуация 5: ивент имеет гибридный формат, онлайн-лимит и статус "регистрация
-# онлайн закрыта":
-# 5.1 OPEN заявка была онлайн, тогда меняем статус ивента на "регистрация открыта"
-# 5.2 NO CHANGE заявка была офлайн, тогда не меняем статус ивента
-
-# TODO: add logging (event status changes)
-
-
 class EventReopeningController:
     """
     Checks participant limits for an event after the deletion of an application
@@ -185,65 +143,140 @@ class EventReopeningController:
         """Checks event participant limits and reopens registration if applicable."""
         previous_event_status: str = event.status
 
-        closed_strict_format_event: bool = (
+        if (
+            EventReopeningController._reopen_closed_event_of_strict_format(event)
+            or EventReopeningController._reopen_offline_closed_hybrid_event(
+                event, application_format
+            )
+            or EventReopeningController._reopen_online_closed_hybrid_event(
+                event, application_format
+            )
+            or EventReopeningController._reopen_hybrid_event_with_only_offline_limit(
+                event, application_format
+            )
+            or EventReopeningController._reopen_hybrid_event_with_only_online_limit(
+                event, application_format
+            )
+        ):
+            event.status = Event.STATUS_OPEN
+
+        elif EventReopeningController._online_reopen_hybrid_event_with_both_limits(
+            event, application_format
+        ):
+            event.status = Event.STATUS_OFFLINE_CLOSED
+
+        elif EventReopeningController._offline_reopen_hybrid_event_with_both_limits(
+            event, application_format
+        ):
+            event.status = Event.STATUS_ONLINE_CLOSED
+
+        event.save()
+
+        if event.status != previous_event_status:
+            logger.debug(f"The status of event {event} was changed to {event.status}")
+
+    @staticmethod
+    def _reopen_closed_event_of_strict_format(event: Event) -> bool:
+        """
+        Checks if fully closed event with strict (not hybrid) format should fully reopen
+        after cancellation of any application.
+        """
+        return (
             event.format != Event.FORMAT_HYBRID and event.status == Event.STATUS_CLOSED
         )
-        hybrid_event_closed_offline_and_application_offline: bool = (
+
+    @staticmethod
+    def _reopen_offline_closed_hybrid_event(
+        event: Event, application_format: str
+    ) -> bool:
+        """
+        Checks if hybrid event, which was closed offline and had participant offline
+        limit, should fully reopen after cancellation of offline application.
+        """
+        return (
             event.format == Event.FORMAT_HYBRID
             and event.status == Event.STATUS_OFFLINE_CLOSED
             and event.participant_offline_limit
             and application_format == Event.FORMAT_OFFLINE
         )
-        hybrid_event_closed_online_and_application_online: bool = (
+
+    @staticmethod
+    def _reopen_online_closed_hybrid_event(
+        event: Event, application_format: str
+    ) -> bool:
+        """
+        Checks if hybrid event, which was closed online and had participant online
+        limit, should fully reopen after cancellation of online application.
+        """
+        return (
             event.format == Event.FORMAT_HYBRID
             and event.status == Event.STATUS_ONLINE_CLOSED
             and event.participant_online_limit
             and application_format == Event.FORMAT_ONLINE
         )
-        closed_hybrid_event_had_only_offline_limit_and_application_offline: bool = (
+
+    @staticmethod
+    def _reopen_hybrid_event_with_only_offline_limit(
+        event: Event, application_format: str
+    ) -> bool:
+        """
+        Checks if hybrid event, which was fully closed and had only participant offline
+        limit, should fully reopen after cancellation of offline application.
+        """
+        return (
             event.format == Event.FORMAT_HYBRID
             and event.status == Event.STATUS_CLOSED
             and event.participant_offline_limit
             and not event.participant_online_limit
             and application_format == Event.FORMAT_OFFLINE
         )
-        closed_hybrid_event_had_only_online_limit_and_application_online: bool = (
+
+    @staticmethod
+    def _reopen_hybrid_event_with_only_online_limit(
+        event: Event, application_format: str
+    ) -> bool:
+        """
+        Checks if hybrid event, which was fully closed and had only participant online
+        limit, should fully reopen after cancellation of online application.
+        """
+        return (
             event.format == Event.FORMAT_HYBRID
             and event.status == Event.STATUS_CLOSED
             and not event.participant_offline_limit
             and event.participant_online_limit
             and application_format == Event.FORMAT_ONLINE
         )
-        closed_hybrid_event_had_both_limits_and_application_online: bool = (
+
+    @staticmethod
+    def _online_reopen_hybrid_event_with_both_limits(
+        event: Event, application_format: str
+    ) -> bool:
+        """
+        Checks if hybrid event, which was fully closed and had both (offline and online)
+        participant limits, should reopen for online applications after cancellation of
+        online application.
+        """
+        return (
             event.format == Event.FORMAT_HYBRID
             and event.status == Event.STATUS_CLOSED
             and event.participant_offline_limit
             and event.participant_online_limit
             and application_format == Event.FORMAT_ONLINE
         )
-        closed_hybrid_event_had_both_limits_and_application_offline: bool = (
+
+    @staticmethod
+    def _offline_reopen_hybrid_event_with_both_limits(
+        event: Event, application_format: str
+    ) -> bool:
+        """
+        Checks if hybrid event, which was fully closed and had both (offline and online)
+        participant limits, should reopen for offline applications after cancellation of
+        offline application.
+        """
+        return (
             event.format == Event.FORMAT_HYBRID
             and event.status == Event.STATUS_CLOSED
             and event.participant_offline_limit
             and event.participant_online_limit
             and application_format == Event.FORMAT_OFFLINE
         )
-
-        if (
-            closed_strict_format_event
-            or hybrid_event_closed_offline_and_application_offline
-            or hybrid_event_closed_online_and_application_online
-            or closed_hybrid_event_had_only_offline_limit_and_application_offline
-            or closed_hybrid_event_had_only_online_limit_and_application_online
-        ):
-            event.status = Event.STATUS_OPEN
-
-        elif closed_hybrid_event_had_both_limits_and_application_online:
-            event.status = Event.STATUS_OFFLINE_CLOSED
-
-        elif closed_hybrid_event_had_both_limits_and_application_offline:
-            event.status = Event.STATUS_ONLINE_CLOSED
-
-        event.save()
-        if event.status != previous_event_status:
-            logger.debug(f"The status of event {event} was changed to {event.status}")
