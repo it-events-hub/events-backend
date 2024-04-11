@@ -7,7 +7,7 @@ from rest_framework.viewsets import GenericViewSet
 
 from .models import User
 from .serializers import UserSerializer, UserUpdateSerializer
-from applications.utils_db_write import create_notification_settings
+from applications.helpers import create_notification_settings
 
 
 class UserModelViewSet(CreateModelMixin, GenericViewSet):

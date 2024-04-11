@@ -227,6 +227,8 @@ class EventDetailSerializer(EventListSerializer):
             "name",
             "is_deleted",
             "is_registrated",
+            "submitted_applications",
+            "first_speaker",
             "organization",
             "description",
             "status",
