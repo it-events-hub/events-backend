@@ -349,6 +349,8 @@ class NotificationSettingsSerializer(serializers.ModelSerializer):
             return bool(obj.user.telegram)
         return bool(obj.application.telegram)
 
+    # TODO: кажется надо убрать эту проверку, на этапе MVP будем всегда считать, что мы
+    # знаем телеграм, на который надо отправлять уведомления
     @transaction.atomic
     def update(self, instance, validated_data):
         """
@@ -368,3 +370,9 @@ class NotificationSettingsSerializer(serializers.ModelSerializer):
             setattr(instance, field, validated_data[field])
         instance.save()
         return instance
+
+
+class DestroyObjectSuccessSerializer(serializers.Serializer):
+    """Serializer to provide some json response after objects deletion."""
+
+    message = serializers.CharField()

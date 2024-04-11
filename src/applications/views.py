@@ -22,12 +22,14 @@ from .serializers import (
     NotificationSettingsSerializer,
 )
 from api.loggers import logger
+from api.mixins import DestroyWithPayloadMixin
 from api.permissions import IsAuthorOrCreateOnly
 from users.models import Specialization
 
 
-# TODO: Возвращать статус 200 и response body в случае удаления объекта
-class ApplicationViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
+class ApplicationViewSet(
+    CreateModelMixin, DestroyWithPayloadMixin, DestroyModelMixin, GenericViewSet
+):
     """ViewSet to create and delete applications for participation in events."""
 
     queryset = Application.objects.all()
