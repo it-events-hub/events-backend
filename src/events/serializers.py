@@ -3,6 +3,7 @@ from drf_yasg.utils import swagger_serializer_method
 from rest_framework import serializers
 
 from .models import City, Event, EventPart, EventType, Speaker
+from .utils import EVENT_CITY_REQUIRED_ERROR, EVENT_PLACE_REQUIRED_ERROR
 from api.services.image_decoder import Base64ImageField
 from applications.models import Application
 from users.models import Specialization
@@ -310,15 +311,9 @@ class EventCreateSerializer(serializers.ModelSerializer):
         place = data.get("place")
         if format in [Event.FORMAT_OFFLINE, Event.FORMAT_HYBRID]:
             if not city:
-                raise serializers.ValidationError(
-                    "Поле 'Город' обязательно к заполнению, "
-                    "если формат мероприятия 'offline' или 'гибрид'."
-                )
+                raise serializers.ValidationError(EVENT_CITY_REQUIRED_ERROR)
             if not place:
-                raise serializers.ValidationError(
-                    "Поле 'Место' обязательно к заполнению, "
-                    "если формат мероприятия 'offline' или 'гибрид'."
-                )
+                raise serializers.ValidationError(EVENT_PLACE_REQUIRED_ERROR)
         return data
 
 
