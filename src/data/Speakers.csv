@@ -1,0 +1,26 @@
+id,name,company,position,description,photo
+1,перерыв,отдыхаем,наслаждаемся,,speakers/1.jpg
+2,Сергей Петров,Google,Инженер по ML,,speakers/2.jpg
+3,Мария Смирнова,Yandex,Главный исследователь,,speakers/3.jpg
+4,Алексей Иванов,Mail,Инженер по ML,,speakers/4.jpg
+5,Анна Морозова,JetBrains,Ведущий специалист по ML,,speakers/5.jpg
+6,Андрей Соколов,VK,Главный исследователь,,speakers/6.jpg
+7,Елена Попова,Ланит,Инженер по ML,,speakers/7.jpg
+8,Дмитрий Петров,Контур,Ведущий специалист по ML,,speakers/8.jpg
+9,Виктория Смирнова,Skolkovo,Главный инженер,,speakers/9.jpg
+10,Иван Иванов,OpenAI,Главный исследователь,,speakers/10.jpg
+11,София Петрова,Контур,Ведущий специалист по ML,,speakers/11.jpg
+12,Александр Смирнов,Rostelecom,Главный исследователь,,speakers/12.jpg
+13,Елена Морозова,Росбанк,Ведущий специалист по ML,,speakers/13.jpg
+14,Сергей Соколов,Sberbank,Ведущий специалист по ML,,speakers/14.jpg
+15,Анна Иванова,Tinkoff,Ведущий аналитик,,speakers/15.jpg
+16,Дмитрий Морозов,Alfa-Bank,Главный аналитик,,speakers/16.jpg
+17,Екатерина Смирнова,VTB,Главный специалист по ML,,speakers/17.jpg
+18,Сергей Иванов,Gazprombank,Главный инженер по тестированию,,speakers/18.jpg
+19,Сергей Сергеев,Yandex,Ведущий QA инженер,,speakers/19.jpg
+20,Анна Карпова,Mail,Главный специалист по качеству,,speakers/20.jpg
+21,Петр Ситников,Sberbank,Руководитель отдела тестирования,,speakers/21.jpg
+22,Мария Маркова,Tinkoff,QA инженер,,speakers/22.jpg
+23,Алексей Алексеев,VTB,Главный инженер по тестированию,,speakers/23.jpg
+24,Ольга Павлова,Alfa-Bank,Специалист по тестированию,,speakers/24.jpg
+25,Николай Молотов,Rostelecom,QA Lead,,speakers/25.jpg
