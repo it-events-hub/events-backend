@@ -10,7 +10,7 @@ services:
       - ./.env
 
   backend:
-    build: ./
+    build: ../
     container_name: "backend"
     volumes:
       - static_value:/app/static/
@@ -23,6 +23,18 @@ services:
     command: >
       sh -c "gunicorn config.wsgi:application --bind 0:8000"
 
+  frontend:
+    # Settings for building image from a cloned frontend repository (mind the branch)
+    build: ../../Funtech/
+    container_name: funtech_frontend
+    # command: cp -r /app/dist/. /frontend_static/
+    volumes:
+      - frontend_build_value:/frontend_static
+    env_file:
+      - ./.env
+    depends_on:
+      - backend
+
   nginx:
     image: nginx:1.25.3-alpine
     container_name: "nginx"
@@ -34,9 +46,11 @@ services:
       - media_value:/var/html/media/
     restart: always
     depends_on:
-      - backend
+      # - backend
+      - frontend
 
 volumes:
   postgres_value:
   static_value:
   media_value:
+  frontend_build_value:

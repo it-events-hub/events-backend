@@ -4,7 +4,7 @@ from django_filters import rest_framework as rf_filters
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAdminUser  # , IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from rest_framework.viewsets import ModelViewSet
@@ -87,7 +87,7 @@ class EventViewSet(ModelViewSet):
         detail=False,
         methods=["get"],
         url_path="three-recommended-events",
-        permission_classes=[IsAuthenticated],
+        permission_classes=[AllowAny],  # TODO: turn back to IsAuthenticated
         filterset_class=None,
         pagination_class=None,
         ordering=None,
@@ -98,10 +98,21 @@ class EventViewSet(ModelViewSet):
         the user's specializations.
         """
         now = timezone.now()
-        specializations = request.user.specializations.all()
         all_future_events = list(
             self.get_queryset().filter(start_time__gt=now).order_by("start_time")
         )
+
+        # TODO: убрать весь этот блок, когда будет снова IsAuthenticated
+        if request.user.is_anonymous:
+            serializer = self.get_serializer_class()(
+                all_future_events[:3],
+                many=True,
+                context={"request": request, "format": self.format_kwarg, "view": self},
+            )
+            return Response(serializer.data, status=HTTP_200_OK)
+        # TODO: конец блока, который надо убрать
+
+        specializations = request.user.specializations.all()
         recommended_future_events = [
             event
             for event in all_future_events

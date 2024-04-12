@@ -257,33 +257,38 @@ class EventDetailSerializer(EventListSerializer):
 # TODO: сделать валидацию (метод validate в сериализаторе создания/редактирования нового
 # ивента), что если формат ивента офлайн или гибрид, то поля city и place должны быть
 # заполнены
+# TODO: мероприятие не должно создаваться без частей и спикеров, при редактировании
+# мероприятия его части и спикеры должны тоже редактироваться
 class EventCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating an event."""
 
-    image = Base64ImageField()
+    image = Base64ImageField(required=False)
+    format = serializers.ChoiceField(
+        choices=Event.FORMAT_CHOISES, label=Event._meta.get_field("format").verbose_name
+    )
 
     class Meta:
         model = Event
         fields = [
             "name",
             "description",
+            "event_type",
             "specializations",
-            "start_time",
             "format",
+            "start_time",
+            "end_time",
+            "city",
             "place",
             "participant_offline_limit",
             "participant_online_limit",
+            "registration_deadline",
+            "status",
             "livestream_link",
             "additional_materials_link",
             "is_featured",
             "is_featured_on_yandex_afisha",
-            "event_type",
-            "city",
             "image",
-            "end_time",
-            "status",
             "cost",
-            "registration_deadline",
         ]
 
 

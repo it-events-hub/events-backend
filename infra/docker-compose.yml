@@ -11,7 +11,7 @@ services:
 
   backend:
     image: hackathonyacrm/funtech_backend:v.01
-    container_name: "backend"
+    container_name: "funtech_backend"
     volumes:
       - static_value:/app/static/
       - media_value:/app/media/
@@ -22,6 +22,17 @@ services:
       - ./.env
     command: >
       sh -c "gunicorn config.wsgi:application --bind 0:8000"
+
+  frontend:
+    image: hackathonyacrm/funtech_frontend:v.01
+    container_name: funtech_frontend
+    # command: cp -r /app/dist/. /frontend_static/
+    volumes:
+      - frontend_build_value:/frontend_static
+    env_file:
+      - ./.env
+    depends_on:
+      - backend
 
   nginx:
     image: nginx:1.25.3-alpine
@@ -38,7 +49,7 @@ services:
     restart: always
     entrypoint: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
     depends_on:
-      - backend
+      - frontend
     
   certbot:
     container_name: service_certbot
@@ -54,3 +65,4 @@ volumes:
   postgres_value:
   static_value:
   media_value:
+  frontend_build_value:
