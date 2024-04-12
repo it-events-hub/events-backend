@@ -1,18 +1,12 @@
-import os
 import csv
+import os
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from api.loggers import logger
 from config import settings
-from events.models import (
-    City,
-    EventType,
-    Event,
-    Speaker,
-    EventPart,
-)
+from events.models import City, Event, EventPart, EventType, Speaker
 from users.models import Specialization
 
 DATA_DIR = os.path.join(settings.BASE_DIR, "data")
@@ -54,9 +48,9 @@ def read_specializations():
     """Reading from csv into Specialization table."""
     Specialization.objects.all().delete()
     with open(
-            os.path.join(DATA_DIR, "Specialization.csv"),
-            "r",
-            encoding="utf-8",
+        os.path.join(DATA_DIR, "Specialization.csv"),
+        "r",
+        encoding="utf-8",
     ) as f:
         reader: csv.DictReader = csv.DictReader(f)
         for row in reader:
@@ -99,7 +93,7 @@ def read_events():
                 image=row["image"],
                 is_featured=(row["is_featured"].lower() == "true"),
                 is_featured_on_yandex_afisha=(
-                        row["is_featured_on_yandex_afisha"].lower() == "true"
+                    row["is_featured_on_yandex_afisha"].lower() == "true"
                 ),
             )
             event.save()
@@ -140,6 +134,8 @@ def read_event_parts():
                 presentation_type=row["presentation_type"],
             )
             event_part.save()
+
+
 # End readers list
 
 
