@@ -77,8 +77,9 @@ class SpeakerSerializer(serializers.ModelSerializer):
     speaker_description = serializers.CharField(
         source="description",
         label=Speaker._meta.get_field("description").verbose_name,
+        required=False,
     )
-    photo = Base64ImageField()
+    photo = Base64ImageField(required=False)
 
     class Meta:
         model = Speaker
@@ -95,7 +96,7 @@ class SpeakerSerializer(serializers.ModelSerializer):
 class EventPartSerializer(serializers.ModelSerializer):
     """Serializer for handling event parts."""
 
-    speaker = SpeakerSerializer(read_only=True, allow_null=True)
+    speaker = SpeakerSerializer(allow_null=True)
     event_part_name = serializers.CharField(
         source="name",
         label=EventPart._meta.get_field("name").verbose_name,
@@ -125,7 +126,6 @@ class EventPartSerializer(serializers.ModelSerializer):
             "event_part_created",
             "event_part_start_time",
             "presentation_type",
-            "event",
         ]
 
 
@@ -254,8 +254,6 @@ class EventDetailSerializer(EventListSerializer):
         ]
 
 
-# TODO: мероприятие не должно создаваться без частей и спикеров, при редактировании
-# мероприятия его части и спикеры должны тоже редактироваться
 class EventCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating an event."""
 
@@ -263,6 +261,7 @@ class EventCreateSerializer(serializers.ModelSerializer):
     format = serializers.ChoiceField(
         choices=Event.FORMAT_CHOISES, label=Event._meta.get_field("format").verbose_name
     )
+    event_parts = EventPartSerializer(many=True, source="parts")
 
     class Meta:
         model = Event
@@ -286,7 +285,20 @@ class EventCreateSerializer(serializers.ModelSerializer):
             "is_featured_on_yandex_afisha",
             "image",
             "cost",
+            "event_parts",
         ]
+
+    def create(self, validated_data):
+        event_parts = validated_data.pop("parts")
+        event = Event.objects.create(**validated_data)
+        for part in event_parts:
+            speaker_data = part.pop("speaker")
+            speaker = Speaker.objects.create(**speaker_data)
+            EventPart.objects.create(event=event, speaker=speaker, **part)
+        return event
+
+# TODO: переопределить метод update, при редактировании
+# мероприятия его части и спикеры должны тоже редактироваться
 
     def validate(self, data):
         """
