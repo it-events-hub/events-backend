@@ -38,10 +38,10 @@ collectstatic:
 	cd src; python3 manage.py collectstatic --no-input
 
 up-compose:
-	cd infra; sudo docker compose -f docker-compose.local.yml up -d
+	cd infra; sudo docker compose -f docker-compose.local.yml up -d --remove-orphans
 
 build-compose:
-	cd infra; sudo docker compose -f docker-compose.local.yml up -d --build
+	cd infra; sudo docker compose -f docker-compose.local.yml up -d --build --remove-orphans
 
 stop-compose:
 	cd infra; sudo docker compose -f docker-compose.local.yml stop
@@ -66,6 +66,15 @@ shell-compose:
 
 ls-compose:
 	cd infra; sudo docker compose -f docker-compose.local.yml exec -it backend ls
+
+dumpdb-compose:
+	cd infra; sudo docker compose -f docker-compose.local.yml exec -it backend python3 manage.py dumpdata --output dump.json
+
+loaddb-compose:
+	cd infra; sudo docker compose -f docker-compose.local.yml exec -it backend python3 manage.py loaddata dump.json
+
+loaddb-no-contenttypes-compose:
+	cd infra; sudo docker compose -f docker-compose.local.yml exec -it backend python3 manage.py loaddata --exclude contenttypes dump.json
 
 prune-containers:
 	sudo docker container prune
