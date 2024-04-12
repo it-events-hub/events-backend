@@ -254,9 +254,6 @@ class EventDetailSerializer(EventListSerializer):
         ]
 
 
-# TODO: сделать валидацию (метод validate в сериализаторе создания/редактирования нового
-# ивента), что если формат ивента офлайн или гибрид, то поля city и place должны быть
-# заполнены
 # TODO: мероприятие не должно создаваться без частей и спикеров, при редактировании
 # мероприятия его части и спикеры должны тоже редактироваться
 class EventCreateSerializer(serializers.ModelSerializer):
@@ -290,6 +287,27 @@ class EventCreateSerializer(serializers.ModelSerializer):
             "image",
             "cost",
         ]
+
+    def validate(self, data):
+        """
+        Validates the data for creating or updating an event.
+        City and place fields are required for offline or hybrid events.
+        """
+        format = data.get("format")
+        city = data.get("city")
+        place = data.get("place")
+        if format in [Event.FORMAT_OFFLINE, Event.FORMAT_HYBRID]:
+            if not city:
+                raise serializers.ValidationError(
+                    "Поле 'Город' обязательно к заполнению, "
+                    "если формат мероприятия 'offline' или 'гибрид'."
+                )
+            if not place:
+                raise serializers.ValidationError(
+                    "Поле 'Место' обязательно к заполнению, "
+                    "если формат мероприятия 'offline' или 'гибрид'."
+                )
+        return data
 
 
 class EventDeactivationSerializer(serializers.ModelSerializer):
