@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.db.models import Exists, OuterRef, Prefetch
 from drf_yasg.utils import swagger_serializer_method
 from rest_framework import serializers
@@ -266,6 +267,7 @@ class EventCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
         fields = [
+            "id",
             "name",
             "description",
             "event_type",
@@ -288,17 +290,18 @@ class EventCreateSerializer(serializers.ModelSerializer):
             "event_parts",
         ]
 
+    @transaction.atomic
     def create(self, validated_data):
         event_parts = validated_data.pop("parts")
         event = Event.objects.create(**validated_data)
         for part in event_parts:
             speaker_data = part.pop("speaker")
-            speaker = Speaker.objects.create(**speaker_data)
+            speaker, status = Speaker.objects.get_or_create(**speaker_data)
             EventPart.objects.create(event=event, speaker=speaker, **part)
         return event
 
-# TODO: переопределить метод update, при редактировании
-# мероприятия его части и спикеры должны тоже редактироваться
+    # TODO: переопределить метод update, при редактировании
+    # мероприятия его части и спикеры должны тоже редактироваться
 
     def validate(self, data):
         """
