@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.db.models import Exists, OuterRef, Prefetch
 from drf_yasg.utils import swagger_serializer_method
 from rest_framework import serializers
@@ -70,6 +71,7 @@ class SpecializationSerializer(serializers.ModelSerializer):
 class SpeakerSerializer(serializers.ModelSerializer):
     """Serializer for handling speakers."""
 
+    # id = serializers.IntegerField(required=False)
     speaker_name = serializers.CharField(
         source="name",
         label=Speaker._meta.get_field("name").verbose_name,
@@ -80,7 +82,7 @@ class SpeakerSerializer(serializers.ModelSerializer):
         label=Speaker._meta.get_field("description").verbose_name,
         required=False,
     )
-    photo = Base64ImageField(required=False)
+    photo = Base64ImageField(required=False, allow_null=True)
 
     class Meta:
         model = Speaker
@@ -97,6 +99,7 @@ class SpeakerSerializer(serializers.ModelSerializer):
 class EventPartSerializer(serializers.ModelSerializer):
     """Serializer for handling event parts."""
 
+    # id = serializers.IntegerField(required=False)
     speaker = SpeakerSerializer(allow_null=True)
     event_part_name = serializers.CharField(
         source="name",
@@ -267,6 +270,7 @@ class EventCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
         fields = [
+            "id",
             "name",
             "description",
             "event_type",
@@ -289,32 +293,72 @@ class EventCreateSerializer(serializers.ModelSerializer):
             "event_parts",
         ]
 
+    @transaction.atomic
     def create(self, validated_data):
         event_parts = validated_data.pop("parts")
         event = Event.objects.create(**validated_data)
         for part in event_parts:
             speaker_data = part.pop("speaker")
-            speaker = Speaker.objects.create(**speaker_data)
+            speaker, _ = Speaker.objects.get_or_create(**speaker_data)
             EventPart.objects.create(event=event, speaker=speaker, **part)
         return event
 
-# TODO: переопределить метод update, при редактировании
-# мероприятия его части и спикеры должны тоже редактироваться
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        event_parts = validated_data.pop("parts")
 
-    def validate(self, data):
+        for attrs, value in validated_data.items():
+            setattr(instance, attrs, value)
+        instance.save()
+
+        # TODO: по умолчанию Django не поддерживает вложенные сериализаторы,
+        # поэтому они доступны только для чтения.
+        # Надо подумать как это решить...
+
+        # part_ids_to_keep = [part_data.get("id") for part_data in event_parts if part_data.get("id")]
+
+        # # Удаляем части мероприятия, которые не указаны в новых данных
+        # instance.parts.exclude(id__in=part_ids_to_keep).delete()
+
+        # for part in event_parts:
+        #     part_id = part.get("id")
+        #     if part_id:
+        #         event_part = EventPart.objects.get(id=part_id, event=instance)
+        #         speaker_data = part.get("speaker")
+        #         speaker_id = speaker_data.get("id")
+        #         if speaker_id:
+        #             speaker, _ = Speaker.objects.get_or_create(id=speaker_id)
+        #             for key, value in speaker_data.items():
+        #                 setattr(speaker, key, value)
+        #             speaker.save()
+        #         event_part.save()
+        #     else:
+        #         speaker_data = part.pop("speaker")
+        #         speaker_id = speaker_data.get("id")
+        #         if speaker_id:
+        #             speaker, _ = Speaker.objects.get_or_create(id=speaker_id)
+        #             for key, value in speaker_data.items():
+        #                 setattr(speaker, key, value)
+        #             speaker.save()
+        #         else:
+        #             speaker = Speaker.objects.create(**speaker_data)
+        #         EventPart.objects.create(event=instance, speaker=speaker, **part)
+        return instance
+
+    def validate(self, attrs):
         """
         Validates the data for creating or updating an event.
         City and place fields are required for offline or hybrid events.
         """
-        format = data.get("format")
-        city = data.get("city")
-        place = data.get("place")
+        format = attrs.get("format")
+        city = attrs.get("city")
+        place = attrs.get("place")
         if format in [Event.FORMAT_OFFLINE, Event.FORMAT_HYBRID]:
             if not city:
                 raise serializers.ValidationError(EVENT_CITY_REQUIRED_ERROR)
             if not place:
                 raise serializers.ValidationError(EVENT_PLACE_REQUIRED_ERROR)
-        return data
+        return attrs
 
 
 class EventDeactivationSerializer(serializers.ModelSerializer):
