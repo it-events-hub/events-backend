@@ -175,7 +175,7 @@ class EventPart(models.Model):
     )
     created = models.DateTimeField("Создано", default=timezone.now)
     start_time = models.DateTimeField("Время начала")
-    presentation_type = models.CharField("Тип", max_length=100)
+    presentation_type = models.CharField("Тип", max_length=100, blank=True, null=True)
 
     class Meta:
         verbose_name = "Часть мероприятия"
