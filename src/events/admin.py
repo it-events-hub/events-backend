@@ -27,7 +27,7 @@ class CityAdmin(admin.ModelAdmin):
 class SpeakerAdmin(admin.ModelAdmin):
     """Class to display speakers in admin panel."""
 
-    list_display = ["pk", "name", "company", "position"]
+    list_display = ["pk", "name", "company", "position", "description"]
     list_display_links = ["name"]
     search_fields = ["name", "company"]
     list_filter = ["position"]
