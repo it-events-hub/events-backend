@@ -81,7 +81,6 @@ class SpecializationSerializer(serializers.ModelSerializer):
 class SpeakerSerializer(serializers.ModelSerializer):
     """Serializer for handling speakers."""
 
-    # id = serializers.IntegerField(required=False)
     speaker_name = serializers.CharField(
         source="name",
         label=Speaker._meta.get_field("name").verbose_name,
@@ -92,7 +91,7 @@ class SpeakerSerializer(serializers.ModelSerializer):
         label=Speaker._meta.get_field("description").verbose_name,
         required=False,
     )
-    photo = Base64ImageField(required=False, allow_null=True)
+    photo = Base64ImageField(required=False)
 
     class Meta:
         model = Speaker
@@ -109,7 +108,6 @@ class SpeakerSerializer(serializers.ModelSerializer):
 class EventPartSerializer(serializers.ModelSerializer):
     """Serializer for handling event parts."""
 
-    # id = serializers.IntegerField(required=False)
     speaker = SpeakerSerializer(allow_null=True)
     event_part_name = serializers.CharField(
         source="name",
