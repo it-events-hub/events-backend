@@ -1,10 +1,20 @@
+from typing import Any
+
 from django.db import transaction
 from django.db.models import Exists, OuterRef, Prefetch
 from drf_yasg.utils import swagger_serializer_method
 from rest_framework import serializers
 
 from .models import City, Event, EventPart, EventType, Speaker
-from .utils import EVENT_CITY_REQUIRED_ERROR, EVENT_PLACE_REQUIRED_ERROR
+from .utils import (
+    EVENT_CITY_REQUIRED_ERROR,
+    EVENT_PART_NO_NAME_ERROR,
+    EVENT_PART_NO_START_TIME_ERROR,
+    EVENT_PART_STARTTIME_ERROR,
+    EVENT_PLACE_REQUIRED_ERROR,
+    SPEAKER_CREATE_VALIDATION_ERROR,
+    SPEAKER_PATCH_NO_NAME_ERROR,
+)
 from api.services.image_decoder import Base64ImageField
 from applications.models import Application
 from users.models import Specialization
@@ -293,6 +303,18 @@ class EventCreateSerializer(serializers.ModelSerializer):
             "event_parts",
         ]
 
+    def validate_event_part(self, part: dict[Any], event: Event) -> None:
+        """Validates the event part during event editing."""
+        if part.get("name") is None:
+            raise serializers.ValidationError(EVENT_PART_NO_NAME_ERROR)
+        if part.get("start_time") is None:
+            raise serializers.ValidationError(EVENT_PART_NO_START_TIME_ERROR)
+        if (
+            part.get("start_time") is not None
+            and part.get("start_time") < event.start_time
+        ):
+            raise serializers.ValidationError(EVENT_PART_STARTTIME_ERROR)
+
     @transaction.atomic
     def create(self, validated_data):
         event_parts = validated_data.pop("parts")
@@ -304,45 +326,53 @@ class EventCreateSerializer(serializers.ModelSerializer):
         return event
 
     @transaction.atomic
-    def update(self, instance, validated_data):
-        event_parts = validated_data.pop("parts")
+    def update(self, instance: Event, validated_data):
+        """
+        Updates fields of the event as a whole, as well as its nested objects -
+        event parts and their speakers.
+        """
+        # перезаписываем event parts этого мероприятия
+        if validated_data.get("parts") is not None:
 
-        for attrs, value in validated_data.items():
-            setattr(instance, attrs, value)
+            # удаляем старые event parts этого мероприятия
+            for instance_part in instance.parts.all():
+                instance_part.delete()
+
+            event_parts = validated_data.pop("parts")
+            for part in event_parts:
+                self.validate_event_part(part, instance)
+
+                # получаем спикера для event part (он может быть и None)
+                if part.get("speaker") is not None:
+                    speaker_data = part.pop("speaker")
+                    if "name" in speaker_data and Speaker.objects.filter(
+                        name=speaker_data["name"]
+                    ):  # получаем спикера по имени и обновляем его поля
+                        speaker = Speaker.objects.get(name=speaker_data["name"])
+                        for field, value in speaker_data.items():
+                            setattr(speaker, field, value)
+                        speaker.save()
+                    elif "name" in speaker_data and not Speaker.objects.filter(
+                        name=speaker_data["name"]
+                    ):  # создаем нового спикера, если известны ФИО, компания и позиция
+                        if speaker_data.get("company") and speaker_data.get("position"):
+                            speaker = Speaker.objects.create(**speaker_data)
+                        else:
+                            raise serializers.ValidationError(
+                                SPEAKER_CREATE_VALIDATION_ERROR
+                            )
+                    else:  # поля name нет, просим указать имя спикера
+                        raise serializers.ValidationError(SPEAKER_PATCH_NO_NAME_ERROR)
+                else:
+                    speaker = None
+
+                # создаем новую event part
+                EventPart.objects.create(event=instance, speaker=speaker, **part)
+
+        # обновляем поля самого мероприятия
+        for field, value in validated_data.items():
+            setattr(instance, field, value)
         instance.save()
-
-        # TODO: по умолчанию Django не поддерживает вложенные сериализаторы,
-        # поэтому они доступны только для чтения.
-        # Надо подумать как это решить...
-
-        # part_ids_to_keep = [part_data.get("id") for part_data in event_parts if part_data.get("id")]
-
-        # # Удаляем части мероприятия, которые не указаны в новых данных
-        # instance.parts.exclude(id__in=part_ids_to_keep).delete()
-
-        # for part in event_parts:
-        #     part_id = part.get("id")
-        #     if part_id:
-        #         event_part = EventPart.objects.get(id=part_id, event=instance)
-        #         speaker_data = part.get("speaker")
-        #         speaker_id = speaker_data.get("id")
-        #         if speaker_id:
-        #             speaker, _ = Speaker.objects.get_or_create(id=speaker_id)
-        #             for key, value in speaker_data.items():
-        #                 setattr(speaker, key, value)
-        #             speaker.save()
-        #         event_part.save()
-        #     else:
-        #         speaker_data = part.pop("speaker")
-        #         speaker_id = speaker_data.get("id")
-        #         if speaker_id:
-        #             speaker, _ = Speaker.objects.get_or_create(id=speaker_id)
-        #             for key, value in speaker_data.items():
-        #                 setattr(speaker, key, value)
-        #             speaker.save()
-        #         else:
-        #             speaker = Speaker.objects.create(**speaker_data)
-        #         EventPart.objects.create(event=instance, speaker=speaker, **part)
         return instance
 
     def validate(self, attrs):
