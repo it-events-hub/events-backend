@@ -23,7 +23,8 @@ from .serializers import (
 )
 from api.loggers import logger
 from api.mixins import DestroyWithPayloadMixin
-from api.permissions import IsAuthorOrCreateOnly
+
+# from api.permissions import IsAuthorOrCreateOnly
 from users.models import Specialization
 
 
@@ -33,7 +34,8 @@ class ApplicationViewSet(
     """ViewSet to create and delete applications for participation in events."""
 
     queryset = Application.objects.all()
-    permission_classes = [IsAuthorOrCreateOnly]
+    # TODO: вернуть permission_classes, когда фронты скажут, что уже можно
+    # permission_classes = [IsAuthorOrCreateOnly]
 
     def get_serializer_class(self):
         if self.request.user.is_authenticated:
