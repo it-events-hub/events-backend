@@ -4,22 +4,27 @@ from django_filters import rest_framework as rf_filters
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
+from rest_framework.mixins import ListModelMixin
 from rest_framework.permissions import AllowAny, IsAdminUser  # , IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
-from rest_framework.viewsets import ModelViewSet
+from rest_framework.viewsets import GenericViewSet, ModelViewSet
 
-from .models import Event
+from .models import City, Event, EventType
 from .schemas import EVENT_LIST_DESCRIPTION, EVENT_LIST_FILTERS
 from .serializers import (
+    CitySerializer,
     EventCreateSerializer,
     EventDeactivationSerializer,
     EventDetailSerializer,
     EventListSerializer,
+    EventTypeSerializer,
+    SpecializationSerializer,
 )
 from api.filters import EventsFilter
 from api.pagination import CustomPageNumberPagination
 from api.permissions import IsAdminOrReadOnly
+from users.models import Specialization
 
 
 @method_decorator(
@@ -136,3 +141,24 @@ class EventViewSet(ModelViewSet):
             context={"request": request, "format": self.format_kwarg, "view": self},
         )
         return Response(serializer.data, status=HTTP_200_OK)
+
+
+class CityViewSet(ListModelMixin, GenericViewSet):
+    """ViewSet for city list"""
+
+    queryset = City.objects.all()
+    serializer_class = CitySerializer
+
+
+class EventTypeViewSet(ListModelMixin, GenericViewSet):
+    """ViewSet for event type list"""
+
+    queryset = EventType.objects.all()
+    serializer_class = EventTypeSerializer
+
+
+class SpecializationViewSet(ListModelMixin, GenericViewSet):
+    """ViewSet for specialization list"""
+
+    queryset = Specialization.objects.all()
+    serializer_class = SpecializationSerializer
