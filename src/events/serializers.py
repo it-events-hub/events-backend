@@ -301,7 +301,7 @@ class EventCreateSerializer(serializers.ModelSerializer):
             "event_parts",
         ]
 
-    def validate_event_part(self, part: dict[Any], event: Event) -> None:
+    def _validate_event_part(self, part: dict[Any], event: Event) -> None:
         """Validates the event part during event editing."""
         if part.get("name") is None:
             raise serializers.ValidationError(EVENT_PART_NO_NAME_ERROR)
@@ -312,6 +312,32 @@ class EventCreateSerializer(serializers.ModelSerializer):
             and part.get("start_time") < event.start_time
         ):
             raise serializers.ValidationError(EVENT_PART_STARTTIME_ERROR)
+
+    def _get_event_part_speaker(self, part: dict[Any]) -> Speaker | None:
+        """
+        Creates or retrieves a speaker if one is expected for the event part;
+        otherwise, returns None.
+        """
+        if part.get("speaker") is None:
+            return None
+
+        speaker_data = part.pop("speaker")
+        if "name" not in speaker_data:
+            raise serializers.ValidationError(SPEAKER_PATCH_NO_NAME_ERROR)
+
+        if Speaker.objects.filter(name=speaker_data["name"]):
+            speaker = Speaker.objects.get(name=speaker_data["name"])
+            for field, value in speaker_data.items():
+                setattr(speaker, field, value)
+            speaker.save()
+
+        elif not Speaker.objects.filter(name=speaker_data["name"]):
+            if speaker_data.get("company") and speaker_data.get("position"):
+                speaker = Speaker.objects.create(**speaker_data)
+            else:
+                raise serializers.ValidationError(SPEAKER_CREATE_VALIDATION_ERROR)
+
+        return speaker
 
     @transaction.atomic
     def create(self, validated_data):
@@ -336,35 +362,11 @@ class EventCreateSerializer(serializers.ModelSerializer):
             for instance_part in instance.parts.all():
                 instance_part.delete()
 
+            # создаем новые event parts этого мероприятия
             event_parts = validated_data.pop("parts")
             for part in event_parts:
-                self.validate_event_part(part, instance)
-
-                # получаем спикера для event part (он может быть и None)
-                if part.get("speaker") is not None:
-                    speaker_data = part.pop("speaker")
-                    if "name" in speaker_data and Speaker.objects.filter(
-                        name=speaker_data["name"]
-                    ):  # получаем спикера по имени и обновляем его поля
-                        speaker = Speaker.objects.get(name=speaker_data["name"])
-                        for field, value in speaker_data.items():
-                            setattr(speaker, field, value)
-                        speaker.save()
-                    elif "name" in speaker_data and not Speaker.objects.filter(
-                        name=speaker_data["name"]
-                    ):  # создаем нового спикера, если известны ФИО, компания и позиция
-                        if speaker_data.get("company") and speaker_data.get("position"):
-                            speaker = Speaker.objects.create(**speaker_data)
-                        else:
-                            raise serializers.ValidationError(
-                                SPEAKER_CREATE_VALIDATION_ERROR
-                            )
-                    else:  # поля name нет, просим указать имя спикера
-                        raise serializers.ValidationError(SPEAKER_PATCH_NO_NAME_ERROR)
-                else:
-                    speaker = None
-
-                # создаем новую event part
+                self._validate_event_part(part, instance)
+                speaker = self._get_event_part_speaker(part)
                 EventPart.objects.create(event=instance, speaker=speaker, **part)
 
         # обновляем поля самого мероприятия
