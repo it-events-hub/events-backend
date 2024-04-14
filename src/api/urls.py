@@ -5,7 +5,12 @@ from rest_framework import permissions
 from rest_framework.routers import DefaultRouter
 
 from applications.views import ApplicationViewSet, NotificationSettingsViewSet
-from events.views import EventViewSet
+from events.views import (
+    CityViewSet,
+    EventTypeViewSet,
+    EventViewSet,
+    SpecializationViewSet,
+)
 from users.views import UserModelViewSet
 
 app_name = "api"
@@ -13,6 +18,9 @@ app_name = "api"
 router = DefaultRouter()
 router.register("users", UserModelViewSet, "users")
 router.register("events", EventViewSet, "events")
+router.register("cities", CityViewSet)
+router.register("event_types", EventTypeViewSet)
+router.register("specializations", SpecializationViewSet)
 router.register("applications", ApplicationViewSet)
 router.register("notification-settings", NotificationSettingsViewSet)
 
