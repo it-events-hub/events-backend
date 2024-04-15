@@ -28,7 +28,7 @@ from .utils import (
 from api.loggers import logger
 from events.models import Event
 from users.models import Specialization, User
-from users.utils import PHONE_NUMBER_REGEX, check_birth_date
+from users.utils import PHONE_NUMBER_ERROR, PHONE_NUMBER_REGEX, check_birth_date
 
 
 class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
@@ -301,6 +301,7 @@ class ApplicationCreateAnonymousSerializer(ApplicationCreateAuthorizedSerializer
         max_length=Application._meta.get_field("phone").max_length,
         label=Application._meta.get_field("phone").verbose_name,
         regex=PHONE_NUMBER_REGEX,
+        error_messages={"invalid": PHONE_NUMBER_ERROR},
     )
     activity = serializers.ChoiceField(
         choices=User.ACTIVITY_CHOISES,
