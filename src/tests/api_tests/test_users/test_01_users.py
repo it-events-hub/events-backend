@@ -2,8 +2,6 @@ import re
 
 import pytest
 
-from users.models import PHONE_NUMBER_REGEX
-
 
 @pytest.mark.django_db
 def test_user(user_factory):

@@ -4,7 +4,7 @@ from faker.providers import DynamicProvider, profile
 
 from users.models import User
 
-fake = Faker('ru_RU')
+fake = Faker("ru_RU")
 fake.add_provider(profile)
 
 activity_dynamic_provider = DynamicProvider(

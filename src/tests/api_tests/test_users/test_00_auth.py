@@ -12,9 +12,9 @@ class Test00Auth:
     def test_00_create_user(self, client):
         response = client.post(self.URL_CREATE_USER)
 
-        assert response.status_code != HTTPStatus.NOT_FOUND, (
-            f"Эндпойнт {self.URL_CREATE_USER} не найден. Проверьте роутеры."
-        )
+        assert (
+            response.status_code != HTTPStatus.NOT_FOUND
+        ), f"Эндпойнт {self.URL_CREATE_USER} не найден. Проверьте роутеры."
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, (
             f"POST-запрос на {self.URL_CREATE_USER} без необходимых данных "
@@ -38,5 +38,5 @@ class Test00Auth:
                 "то они должны возвращаться в списке ошибок."
             )
 
-    def test_00_invalid_data(self, client):
-        ...
+    # def test_00_invalid_data(self, client):
+    #     ...
