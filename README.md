@@ -34,13 +34,18 @@
 
 # Команда backend разработки
 
-- [Galina Volkova](https://github.com/earlinn)
-- [Nikolai Petrishchev](https://github.com/nikpetrischev)
-- [Maksim Ukolov](https://github.com/link75)
+- [Galina Volkova](https://github.com/earlinn) - тимлид, руководство командой backend-разработки, 
+code review, проектирование базы данных, разработка эндпойнтов заявок на участие в мероприятиях 
+и настроек уведомлений пользователей, подключение фильтрации к эндпойнту списка мероприятий, 
+настройка динамической документации апи в форматах Swagger и Redoc, деплой на сервер и настройка CI/CD 
+- [Nikolai Petrishchev](https://github.com/nikpetrischev) - разработка эндпойнтов пользователей, 
+разработка команд загрузки данных из csv-файлов в базу данных, подготовка сервера в Яндекс Облаке 
+для деплоя
+- [Maksim Ukolov](https://github.com/link75) - разработка эндпойнтов мероприятий, их частей и спикеров
 
 # Динамически генерируемая документация апи
 
-Чтобы посмотреть динамическую документацию апи, нужно запустить приложение и
+Чтобы посмотреть динамическую документацию апи, нужно запустить приложение и 
 пройти по одной из этих ссылок:
 - в формате Swagger - https://hackathon-funtech.sytes.net/api/v1/swagger/
 - в формате Redoc - https://hackathon-funtech.sytes.net/api/v1/redoc/
