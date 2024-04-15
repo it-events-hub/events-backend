@@ -34,7 +34,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     ACTIVITY_WORK: str = "working"
     ACTIVITY_STUDY: str = "studying"
-    ACTIVITY_SEEK: str = "job seeking"
+    ACTIVITY_SEEK: str = "seeking"
 
     ACTIVITY_CHOISES: list[tuple[str]] = [
         (ACTIVITY_WORK, "работаю"),
