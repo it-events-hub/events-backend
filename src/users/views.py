@@ -1,7 +1,8 @@
 from djoser.serializers import UserCreateSerializer
 from rest_framework.decorators import action
 from rest_framework.mixins import CreateModelMixin
-from rest_framework.permissions import IsAuthenticated
+
+# from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
@@ -37,7 +38,8 @@ class UserModelViewSet(CreateModelMixin, GenericViewSet):
     @action(
         methods=["get"],
         detail=False,
-        permission_classes=(IsAuthenticated,),
+        # TODO: вернуть permission_classes, когда фронты скажут, что уже можно
+        # permission_classes=(IsAuthenticated,),
     )
     def me(self, request) -> Response:
         """Shows user's self data."""
