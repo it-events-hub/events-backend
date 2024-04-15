@@ -23,6 +23,8 @@ psycopg2-binary = "^2.9.9"
 pytest = "^8.1.1"
 pytest-django = "^4.8.0"
 django-silk = "^5.1.0"
+pytest-factoryboy = "^2.7.0"
+faker = "^24.9.0"
 
 
 [tool.poetry.group.dev.dependencies]
