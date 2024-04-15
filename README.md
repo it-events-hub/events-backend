@@ -5,12 +5,15 @@
 ![Static Badge](https://img.shields.io/badge/Python-FFD43B?logo=python&logoColor=blue) 
 ![Static Badge](https://img.shields.io/badge/Django-092E20?logo=django&logoColor=green)
 ![Static Badge](https://img.shields.io/badge/JWT-000000?logo=JSON%20web%20tokens&logoColor=white)
+![Static Badge](https://img.shields.io/badge/celery-%2337814A.svg?logo=celery&logoColor=white)
 ![Static Badge](https://img.shields.io/badge/Swagger-85EA2D?logo=Swagger&logoColor=white)
 ![Static Badge](https://img.shields.io/badge/PostgreSQL-316192?logo=postgresql&logoColor=white)
 ![Static Badge](https://img.shields.io/badge/Docker-2CA5E0?logo=docker&logoColor=white) 
 ![Static Badge](https://img.shields.io/badge/Nginx-009639?logo=nginx&logoColor=white) 
 ![Static Badge](https://img.shields.io/badge/GitHub_Actions-2088FF?logo=github-actions&logoColor=white)
- TODO: добавить бейджик Яндекс ID (если есть), Celery, Poetry
+[![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
+![code style](https://img.shields.io/badge/code%20style-black-000000.svg)
+[![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
 
  # Описание проекта
 
