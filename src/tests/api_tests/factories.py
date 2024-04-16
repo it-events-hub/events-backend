@@ -34,8 +34,3 @@ class UserFactory(factory.django.DjangoModelFactory):
 class UserWithWrongEmailAndPhoneFactory(UserFactory):
     email = fake.unique.user_name()
     phone = fake.lexify("???????????")
-
-
-class UserWithWrongRegexFactory(UserFactory):
-    phone = fake.lexify("???????????")
-    telegram = fake.user_name()
