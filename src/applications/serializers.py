@@ -12,12 +12,9 @@ from .utils import (
     APPLICATION_EVENT_CLOSED_ERROR,
     APPLICATION_EVENT_EMAIL_UNIQUE_ERROR,
     APPLICATION_EVENT_IS_DELETED_ERROR,
-    APPLICATION_EVENT_OFFLINE_CLOSED_ERROR,
-    APPLICATION_EVENT_ONLINE_CLOSED_ERROR,
     APPLICATION_EVENT_PHONE_UNIQUE_ERROR,
     APPLICATION_EVENT_STARTTIME_ERROR,
     APPLICATION_EVENT_TELEGRAM_UNIQUE_ERROR,
-    APPLICATION_FORMAT_REQUIRED_ERROR,
     APPLICATION_SPECIALIZATIONS_REQUIRED_ERROR,
     APPLICATION_USER_ALREADY_REGISTERED_ERROR,
     NOTIFICATION_SETTINGS_ID_FIELD_LABEL,
@@ -27,19 +24,14 @@ from .utils import (
 )
 from api.loggers import logger
 from events.models import Event
-from users.models import Specialization, User
-from users.utils import PHONE_NUMBER_REGEX, check_birth_date
+from users.models import User
+from users.utils import PHONE_NUMBER_ERROR, PHONE_NUMBER_REGEX, check_birth_date
 
 
 class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
     """Serializer to create applications on behalf of authorized site visitors."""
 
     user = serializers.PrimaryKeyRelatedField(read_only=True)
-    activity = serializers.ChoiceField(
-        choices=User.ACTIVITY_CHOISES,
-        label=Application._meta.get_field("activity").verbose_name,
-        required=False,
-    )
     notification_settings_id = serializers.SerializerMethodField(
         label=NOTIFICATION_SETTINGS_ID_FIELD_LABEL
     )
@@ -97,18 +89,8 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
         if event.is_deleted:
             raise ValidationError(APPLICATION_EVENT_IS_DELETED_ERROR)
 
-    def validate_application_format(
-        self, event: Event, attrs: dict[str, Any]
-    ) -> ValidationError | None:
-        """
-        Checks that attrs include a format field if the event has a hybrid format.
-        Replaces the format with the correct one if the event has a strict format.
-        Checks that registration for the event is open for the format
-        specified in the application.
-        """
-        if attrs["event"].format == Event.FORMAT_HYBRID and not attrs.get("format"):
-            raise ValidationError(APPLICATION_FORMAT_REQUIRED_ERROR)
-
+    def replace_application_format(self, event: Event, attrs: dict[str, Any]) -> None:
+        """Replaces the format with the correct one if the event has a strict format."""
         if event.format != Event.FORMAT_HYBRID:
             attrs["format"] = event.format
             logger.debug(
@@ -118,16 +100,13 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
 
         if attrs["event"].status == Event.STATUS_CLOSED:
             raise ValidationError(APPLICATION_EVENT_CLOSED_ERROR)
-        if (
-            attrs["event"].status == Event.STATUS_OFFLINE_CLOSED
-            and attrs["format"] == Event.FORMAT_OFFLINE
-        ):
-            raise ValidationError(APPLICATION_EVENT_OFFLINE_CLOSED_ERROR)
-        if (
-            attrs["event"].status == Event.STATUS_ONLINE_CLOSED
-            and attrs["format"] == Event.FORMAT_ONLINE
-        ):
-            raise ValidationError(APPLICATION_EVENT_ONLINE_CLOSED_ERROR)
+
+    def validate_application_event_status(
+        self, attrs: dict[str, Any]
+    ) -> ValidationError | None:
+        """Checks that registration for the event is open."""
+        if attrs["event"].status == Event.STATUS_CLOSED:
+            raise ValidationError(APPLICATION_EVENT_CLOSED_ERROR)
 
     def validate_application_user(
         self, user: SimpleLazyObject | None, event: Event
@@ -259,8 +238,7 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         """
-        Validates start_time, format, user, email, phone, telegram, activity and
-        specializations.
+        Validates start_time, user, email, phone, telegram.
         """
         user: SimpleLazyObject | None = (
             self.context["request"].user
@@ -271,13 +249,12 @@ class ApplicationCreateAuthorizedSerializer(serializers.ModelSerializer):
 
         self.validate_application_event_start_time(event)
         self.validate_application_event_is_deleted(event)
-        self.validate_application_format(event, attrs)
+        self.replace_application_format(event, attrs)
+        self.validate_application_event_status(attrs)
         self.validate_application_user(user, event)
         self.validate_application_email(attrs, user)
         self.validate_application_phone(attrs, user)
         self.validate_application_telegram(attrs, user)
-        self.validate_application_activity(attrs, user)
-        self.validate_application_specializations(attrs, user)
 
         return attrs
 
@@ -301,13 +278,7 @@ class ApplicationCreateAnonymousSerializer(ApplicationCreateAuthorizedSerializer
         max_length=Application._meta.get_field("phone").max_length,
         label=Application._meta.get_field("phone").verbose_name,
         regex=PHONE_NUMBER_REGEX,
-    )
-    activity = serializers.ChoiceField(
-        choices=User.ACTIVITY_CHOISES,
-        label=Application._meta.get_field("activity").verbose_name,
-    )
-    specializations = serializers.PrimaryKeyRelatedField(
-        queryset=Specialization.objects.all(), many=True
+        error_messages={"invalid": PHONE_NUMBER_ERROR},
     )
 
 

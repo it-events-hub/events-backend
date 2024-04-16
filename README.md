@@ -5,12 +5,15 @@
 ![Static Badge](https://img.shields.io/badge/Python-FFD43B?logo=python&logoColor=blue) 
 ![Static Badge](https://img.shields.io/badge/Django-092E20?logo=django&logoColor=green)
 ![Static Badge](https://img.shields.io/badge/JWT-000000?logo=JSON%20web%20tokens&logoColor=white)
+![Static Badge](https://img.shields.io/badge/celery-%2337814A.svg?logo=celery&logoColor=white)
 ![Static Badge](https://img.shields.io/badge/Swagger-85EA2D?logo=Swagger&logoColor=white)
 ![Static Badge](https://img.shields.io/badge/PostgreSQL-316192?logo=postgresql&logoColor=white)
 ![Static Badge](https://img.shields.io/badge/Docker-2CA5E0?logo=docker&logoColor=white) 
 ![Static Badge](https://img.shields.io/badge/Nginx-009639?logo=nginx&logoColor=white) 
 ![Static Badge](https://img.shields.io/badge/GitHub_Actions-2088FF?logo=github-actions&logoColor=white)
- TODO: добавить бейджик Яндекс ID (если есть), Celery, Poetry
+[![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
+![code style](https://img.shields.io/badge/code%20style-black-000000.svg)
+[![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
 
  # Описание проекта
 
@@ -31,18 +34,26 @@
 
 # Команда backend разработки
 
-- [Galina Volkova](https://github.com/earlinn)
-- [Nikolai Petrishchev](https://github.com/nikpetrischev)
-- [Maksim Ukolov](https://github.com/link75)
+- [Galina Volkova](https://github.com/earlinn) - тимлид, руководство командой backend-разработки, 
+code review, проектирование базы данных, разработка эндпойнтов заявок на участие в мероприятиях 
+и настроек уведомлений пользователей, подключение фильтрации к эндпойнту списка мероприятий, 
+настройка динамической документации апи в форматах Swagger и Redoc, деплой на сервер и настройка CI/CD 
+- [Nikolai Petrishchev](https://github.com/nikpetrischev) - разработка эндпойнтов пользователей, 
+разработка команд загрузки данных из csv-файлов в базу данных, подготовка сервера в Яндекс Облаке 
+для деплоя
+- [Maksim Ukolov](https://github.com/link75) - разработка эндпойнтов мероприятий, их частей и спикеров
 
 # Динамически генерируемая документация апи
 
-Чтобы посмотреть динамическую документацию апи, нужно запустить приложение и
+Чтобы посмотреть динамическую документацию апи, нужно запустить приложение и 
 пройти по одной из этих ссылок:
 - в формате Swagger - https://hackathon-funtech.sytes.net/api/v1/swagger/
 - в формате Redoc - https://hackathon-funtech.sytes.net/api/v1/redoc/
 
 # Запуск проекта на локальном компьютере (без Docker)
+
+Предварительные условия: на компьютере должны быть установлены [Python 3.10](https://www.python.org/downloads/) 
+и [Poetry](https://python-poetry.org/docs/).
 
 Клонировать репозиторий и перейти в него в командной строке:
 
@@ -107,6 +118,8 @@ python3 manage.py runserver
 Выйти из проекта: Ctrl + C.
 
 # Запуск проекта на локальном компьютере в Docker Compose
+
+Предварительные условия: на компьютере должен быть установлен [Docker Compose](https://docs.docker.com/compose/).
 
 ## Клонирование репозитория, создание контейнеров и первоначальная сборка
 
