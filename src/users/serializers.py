@@ -2,6 +2,7 @@ from django.db import transaction
 from rest_framework import serializers
 
 from .models import Specialization, User
+from .utils import check_birth_date
 from applications.serializers import NotificationSettingsSerializer
 
 
@@ -64,6 +65,12 @@ class UserUpdateSerializer(UserSerializer):
             "experience_years",
             "specializations",
         )
+
+    def validate_birth_date(self, value):
+        """Checks the user's birth date."""
+        birth_date_error: str | None = check_birth_date(value)
+        if birth_date_error:
+            raise serializers.ValidationError(birth_date_error)
 
     @transaction.atomic
     def update(self, instance: User, validated_data: dict) -> User:
