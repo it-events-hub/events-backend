@@ -39,6 +39,7 @@ class UserSerializer(serializers.ModelSerializer):
             "experience_years",
             "specializations",
             "notification_settings",
+            "is_staff",
         )
 
 
