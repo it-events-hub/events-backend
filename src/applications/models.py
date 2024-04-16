@@ -120,7 +120,10 @@ class Application(models.Model):
     birth_date = models.DateField("Дата рождения", blank=True, null=True)
     city = models.CharField("Город", max_length=40, blank=True, null=True)
     activity = models.CharField(
-        "Род занятий", max_length=20, choices=User.ACTIVITY_CHOISES
+        "Род занятий",
+        max_length=20,
+        choices=User.ACTIVITY_CHOISES,
+        default=User.ACTIVITY_STUDY,
     )
     company = models.CharField("Место работы", max_length=50, blank=True, null=True)
     position = models.CharField("Должность", max_length=100, blank=True, null=True)
