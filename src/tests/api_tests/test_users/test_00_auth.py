@@ -30,7 +30,7 @@ class Test00Auth:
             "last_name",
         ]
         errors_list: list = [error["attr"] for error in response_json["errors"]]
-        breakpoint()
+        # breakpoint()
         for field in empty_fields:
             assert field in errors_list, (
                 f"Если в POST-запросе к {self.URL_CREATE_USER} "

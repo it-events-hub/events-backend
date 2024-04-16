@@ -41,9 +41,6 @@ class Source(models.Model):
         return self.name
 
 
-# TODO: При внесении изменений в данные профиля нужно будет обновлять их и во всех
-# заявках данного пользователя (заявки на мероприятия, где is_event_started=False),
-# это тоже будет на уровне апи, включая изменения specializations.
 class Application(models.Model):
     """Model for storing applications for participation in events."""
 
@@ -123,7 +120,10 @@ class Application(models.Model):
     birth_date = models.DateField("Дата рождения", blank=True, null=True)
     city = models.CharField("Город", max_length=40, blank=True, null=True)
     activity = models.CharField(
-        "Род занятий", max_length=20, choices=User.ACTIVITY_CHOISES
+        "Род занятий",
+        max_length=20,
+        choices=User.ACTIVITY_CHOISES,
+        default=User.ACTIVITY_STUDY,
     )
     company = models.CharField("Место работы", max_length=50, blank=True, null=True)
     position = models.CharField("Должность", max_length=100, blank=True, null=True)

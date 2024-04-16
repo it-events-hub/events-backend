@@ -34,6 +34,9 @@ loaddb-no-contenttypes:
 loaddb-no-contenttypes-permissions:
 	cd src; python3 manage.py loaddata --exclude contenttypes --exclude auth.permission dump.json
 
+load_csv:
+	cd src; python3 manage.py load_csv
+
 collectstatic:
 	cd src; python3 manage.py collectstatic --no-input
 
