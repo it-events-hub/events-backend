@@ -1,12 +1,10 @@
 from http import HTTPStatus
-import re
 
 import pytest
 from dateutil.relativedelta import relativedelta
 from django.utils import timezone
 
-from users.models import PHONE_NUMBER_REGEX
-from users.utils import MIN_USER_AGE, MAX_USER_AGE
+from users.utils import MAX_USER_AGE, MIN_USER_AGE
 
 
 @pytest.mark.django_db
@@ -16,8 +14,9 @@ class Test01UsersMe:
     def test_01_get_me_unauthorized(self, user_client_no_auth):
         response = user_client_no_auth.get(self.URL_USERS_ME)
 
-        assert (response.status_code != HTTPStatus.NOT_FOUND,
-            f"Эндпойнт {self.URL_USERS_ME} не найден. Проверьте роутер.")
+        assert (
+            response.status_code != HTTPStatus.NOT_FOUND
+        ), f"Эндпойнт {self.URL_USERS_ME} не найден. Проверьте роутер."
 
         assert response.status_code == HTTPStatus.UNAUTHORIZED, (
             f"При GET-запросе к {self.URL_USERS_ME} неавторизованного "
@@ -27,8 +26,9 @@ class Test01UsersMe:
     def test_01_patch_me_unauthorized(self, user_client_no_auth):
         response = user_client_no_auth.patch(self.URL_USERS_ME)
 
-        assert (response.status_code != HTTPStatus.NOT_FOUND,
-                f"Эндпойнт {self.URL_USERS_ME} не найден. Проверьте роутер.")
+        assert (
+            response.status_code != HTTPStatus.NOT_FOUND
+        ), f"Эндпойнт {self.URL_USERS_ME} не найден. Проверьте роутер."
 
         assert response.status_code == HTTPStatus.UNAUTHORIZED, (
             f"При PATCH-запросе к {self.URL_USERS_ME} неавторизованного "
@@ -36,9 +36,9 @@ class Test01UsersMe:
         )
 
     def test_01_patch_me_wrong_regex_fields(
-            self,
-            user,
-            user_client,
+        self,
+        user,
+        user_client,
     ):
         if user:
             response = user_client.patch(
@@ -46,11 +46,12 @@ class Test01UsersMe:
                 data={
                     "telegram": "wrong_telegram",
                     "phone": "wrong_phone",
-                }
+                },
             )
 
-            assert (response.status_code != HTTPStatus.NOT_FOUND,
-                f"Эндпойнт {self.URL_USERS_ME} не найден. Проверьте роутер.")
+            assert (
+                response.status_code != HTTPStatus.NOT_FOUND
+            ), f"Эндпойнт {self.URL_USERS_ME} не найден. Проверьте роутер."
 
             assert response.status_code == HTTPStatus.BAD_REQUEST, (
                 f"PATCH-запрос на {self.URL_USERS_ME} с неправильными "
@@ -64,7 +65,7 @@ class Test01UsersMe:
             for field in wrong_fields:
                 assert field in errors_list, (
                     f"Если в PATCH-запросе к {self.URL_USERS_ME} "
-                    "переданы поля \"telegram\" и \"phone\", "
+                    'переданы поля "telegram" и "phone", '
                     "не соответствующие их регулярным выражениям, "
                     "то они должны возвращаться в списке ошибок."
                 )
@@ -82,11 +83,12 @@ class Test01UsersMe:
                 data={
                     "email": "wrong_email",
                     "experience_years": -1,
-                }
+                },
             )
 
-            assert (response.status_code != HTTPStatus.NOT_FOUND,
-                f"Эндпойнт {self.URL_USERS_ME} не найден. Проверьте роутер.")
+            assert (
+                response.status_code != HTTPStatus.NOT_FOUND
+            ), f"Эндпойнт {self.URL_USERS_ME} не найден. Проверьте роутер."
 
             assert response.status_code == HTTPStatus.BAD_REQUEST, (
                 f"PATCH-запрос на {self.URL_USERS_ME} с неправильными "
@@ -117,8 +119,9 @@ class Test01UsersMe:
                 data={"birth_date": timezone.now().date()},
             )
 
-            assert (response.status_code != HTTPStatus.NOT_FOUND,
-                    f"Эндпойнт {self.URL_USERS_ME} не найден. Проверьте роутер.")
+            assert (
+                response.status_code != HTTPStatus.NOT_FOUND
+            ), f"Эндпойнт {self.URL_USERS_ME} не найден. Проверьте роутер."
 
             assert response.status_code == HTTPStatus.BAD_REQUEST, (
                 f"PATCH-запрос на {self.URL_USERS_ME} с возрастом меньше "
@@ -137,9 +140,9 @@ class Test01UsersMe:
                 self.URL_USERS_ME,
                 data={
                     "birth_date": (
-                            timezone.now() - relativedelta(years=(MAX_USER_AGE + 1))
+                        timezone.now() - relativedelta(years=(MAX_USER_AGE + 1))
                     ).date(),
-                }
+                },
             )
 
             assert response.status_code == HTTPStatus.BAD_REQUEST, (
@@ -168,8 +171,9 @@ class Test01UsersMe:
                 data={"specializations": [-1]},
             )
 
-            assert (response.status_code != HTTPStatus.NOT_FOUND,
-                    f"Эндпойнт {self.URL_USERS_ME} не найден. Проверьте роутер.")
+            assert (
+                response.status_code != HTTPStatus.NOT_FOUND
+            ), f"Эндпойнт {self.URL_USERS_ME} не найден. Проверьте роутер."
 
             assert response.status_code == HTTPStatus.BAD_REQUEST, (
                 f"PATCH-запрос на {self.URL_USERS_ME} с ID несуществующей "

@@ -13,8 +13,9 @@ class Test00Auth:
     def test_00_create_empty_user(self, client):
         response = client.post(self.URL_CREATE_USER)
 
-        assert (response.status_code != HTTPStatus.NOT_FOUND,
-            f"Эндпойнт {self.URL_CREATE_USER} не найден. Проверьте роутер.")
+        assert (
+            response.status_code != HTTPStatus.NOT_FOUND
+        ), f"Эндпойнт {self.URL_CREATE_USER} не найден. Проверьте роутер."
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, (
             f"POST-запрос на {self.URL_CREATE_USER} без необходимых данных "
@@ -42,8 +43,9 @@ class Test00Auth:
         users_count = User.objects.count()
         response = client_with_wrong_email_and_phone.post(self.URL_CREATE_USER)
 
-        assert (response.status_code != HTTPStatus.NOT_FOUND,
-                f"Эндпойнт {self.URL_CREATE_USER} не найден, проверьте роутер.")
+        assert (
+            response.status_code != HTTPStatus.NOT_FOUND
+        ), f"Эндпойнт {self.URL_CREATE_USER} не найден, проверьте роутер."
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, (
             f"Эндпойнт {self.URL_CREATE_USER} должен вернуть 400, "
@@ -69,8 +71,9 @@ class Test00Auth:
     def test_00_verify_unauthorized_user(self, user_client_no_auth):
         response = user_client_no_auth.post(self.URL_VERIFY_USER)
 
-        assert (response.status_code != HTTPStatus.NOT_FOUND,
-            f"Эндпойнт {self.URL_CREATE_USER} не найден. Проверьте роутер.")
+        assert (
+            response.status_code != HTTPStatus.NOT_FOUND
+        ), f"Эндпойнт {self.URL_CREATE_USER} не найден. Проверьте роутер."
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, (
             f"Если POST-запрос к эндпойнту {self.URL_VERIFY_USER} "
@@ -90,8 +93,9 @@ class Test00Auth:
     def test_00_create_user_with_not_unique_fields(self, user_client):
         response = user_client.post(self.URL_CREATE_USER)
 
-        assert (response.status_code != HTTPStatus.NOT_FOUND,
-            f"Эндпойнт {self.URL_CREATE_USER} не найден, проверьте роутер.")
+        assert (
+            response.status_code != HTTPStatus.NOT_FOUND
+        ), f"Эндпойнт {self.URL_CREATE_USER} не найден, проверьте роутер."
 
         users_count = User.objects.count()
 

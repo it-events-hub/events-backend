@@ -1,7 +1,6 @@
+import pytest
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import AccessToken
-
-import pytest
 
 from tests.api_tests import factories
 
@@ -38,8 +37,7 @@ def user_client_no_auth():
 
 @pytest.fixture
 def user_with_wrong_email_and_phone():
-    user_with_wrong_email_and_phone = factories.UserWithWrongEmailAndPhoneFactory()
-    return user_with_wrong_email_and_phone
+    return factories.UserWithWrongEmailAndPhoneFactory()
 
 
 @pytest.fixture
