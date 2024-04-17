@@ -92,7 +92,8 @@ class EventViewSet(ModelViewSet):
         detail=False,
         methods=["get"],
         url_path="three-recommended-events",
-        # permission_classes=[IsAuthenticated],  # TODO: turn back to IsAuthenticated
+        # TODO: вернуть IsAuthenticated, когда фронты разрешат
+        # permission_classes=[IsAuthenticated],
         permission_classes=[AllowAny],
         filterset_class=None,
         pagination_class=None,
