@@ -30,7 +30,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", default="key")
 
 # Development or Production
 MODE = os.getenv("MODE", default="prod")
-DOCKER = os.getenv("DOCKER", default="yes")
+DOCKER = os.getenv("DOCKER", default="no")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 if MODE == "dev":
