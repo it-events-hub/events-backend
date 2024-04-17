@@ -336,8 +336,6 @@ class NotificationSettingsSerializer(serializers.ModelSerializer):
                 execution_time = start_time - relativedelta(hours=1)
             elif instance.email_notifications == "15 minutes before":
                 execution_time = start_time - relativedelta(minutes=15)
-            print(start_time)
-            print(execution_time)
             result = remind_participant_about_upcoming_event.apply_async(
                 eta=execution_time,
                 kwargs={
@@ -349,6 +347,8 @@ class NotificationSettingsSerializer(serializers.ModelSerializer):
                 },
             )
             logger.debug("Future celery notification task created.")
+            # сохраняем в БД id того celery task, который должен запуститься в будущем,
+            # чтобы при необходимости можно было отозвать этот таск, если пнадобится
             Notification.objects.create(
                 task_id=result.id, application=instance.application
             )
