@@ -152,7 +152,6 @@ class EventListSerializer(serializers.ModelSerializer):
     submitted_applications = serializers.SerializerMethodField()
     first_speaker = serializers.SerializerMethodField()
     image = Base64ImageField()
-    status = serializers.CharField(source="get_status_display")
     format = serializers.CharField(source="get_format_display")
 
     class Meta:
@@ -237,6 +236,8 @@ class EventDetailSerializer(EventListSerializer):
 
     event_parts = EventPartSerializer(many=True, source="parts")
     image = Base64ImageField()
+    status = serializers.CharField(source="get_status_display")
+    format = serializers.CharField(source="get_format_display")
 
     class Meta(EventListSerializer.Meta):
         fields = [
