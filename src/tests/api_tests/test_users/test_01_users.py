@@ -11,8 +11,7 @@ from users.utils import MAX_USER_AGE, MIN_USER_AGE
 class Test01UsersMe:
     URL_USERS_ME = "/api/v1/users/me/"
 
-    # TODO: раскомментить эти два теста, когда фронты вернут авторизацию.
-    '''
+    @pytest.mark.skip(reason="Await for working authorization...")
     def test_01_get_me_unauthorized(self, user_client_no_auth):
         response = user_client_no_auth.get(self.URL_USERS_ME)
 
@@ -25,6 +24,7 @@ class Test01UsersMe:
             "пользователя статус ответа должен быть 401"
         )
 
+    @pytest.mark.skip(reason="Await for working authorization...")
     def test_01_patch_me_unauthorized(self, user_client_no_auth):
         response = user_client_no_auth.patch(self.URL_USERS_ME)
 
@@ -36,7 +36,6 @@ class Test01UsersMe:
             f"При PATCH-запросе к {self.URL_USERS_ME} неавторизованного "
             "пользователя статус ответа должен быть 401"
         )
-    '''
 
     def test_01_patch_me_wrong_regex_fields(
         self,
