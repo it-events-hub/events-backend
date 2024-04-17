@@ -1,12 +1,13 @@
 from typing import Any
 
 import pytz
+from dateutil.relativedelta import relativedelta
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 from rest_framework import serializers
 from rest_framework.serializers import ValidationError
 
-from .models import Application, NotificationSettings
+from .models import Application, Notification, NotificationSettings
 from .tasks import remind_participant_about_upcoming_event
 from .utils import (
     APPLICATION_ACTIVITY_ANONYMOUS_ERROR,
@@ -329,8 +330,27 @@ class NotificationSettingsSerializer(serializers.ModelSerializer):
             )
             date = start_time.strftime("%d-%m-%Y")
             time = start_time.strftime("%H:%M")
-            remind_participant_about_upcoming_event.delay(
-                first_name, event_name, date, time, to_email
+            if instance.email_notifications == "day before":
+                execution_time = start_time - relativedelta(days=1)
+            elif instance.email_notifications == "hour before":
+                execution_time = start_time - relativedelta(hours=1)
+            elif instance.email_notifications == "15 minutes before":
+                execution_time = start_time - relativedelta(minutes=15)
+            result = remind_participant_about_upcoming_event.apply_async(
+                eta=execution_time,
+                kwargs={
+                    "first_name": first_name,
+                    "event_name": event_name,
+                    "date": date,
+                    "time": time,
+                    "to_email": to_email,
+                },
+            )
+            logger.debug("Future celery notification task created.")
+            # сохраняем в БД id того celery task, который должен запуститься в будущем,
+            # чтобы при необходимости можно было отозвать этот таск, если пнадобится
+            Notification.objects.create(
+                task_id=result.id, application=instance.application
             )
         return instance
 
