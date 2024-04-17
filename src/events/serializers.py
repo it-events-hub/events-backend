@@ -139,6 +139,7 @@ class EventPartSerializer(serializers.ModelSerializer):
             "event_part_start_time",
             "presentation_type",
         ]
+        ordering_fields = ["id"]
 
 
 class EventListSerializer(serializers.ModelSerializer):

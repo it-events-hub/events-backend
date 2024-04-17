@@ -26,7 +26,7 @@ services:
   frontend:
     image: hackathonyacrm/funtech_frontend:v.01
     container_name: funtech_frontend
-    # command: cp -r /app/dist/. /frontend_static/
+    command: cp -r /app/dist/. /frontend_static/
     volumes:
       - frontend_build_value:/frontend_static
     env_file:
@@ -44,6 +44,7 @@ services:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
+      - frontend_build_value:/usr/share/nginx/html/
       - static_value:/var/html/static
       - media_value://var/html/media
     restart: always
