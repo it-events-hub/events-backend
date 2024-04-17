@@ -8,6 +8,13 @@ services:
     restart: always
     env_file:
       - ./.env
+  
+  redis:
+    image: redis:7-alpine
+    container_name: funtech_redis
+    restart: always
+    ports:
+      - 6370:6379
 
   backend:
     build: ../
@@ -34,6 +41,21 @@ services:
       - ./.env
     depends_on:
       - backend
+  
+  celery_worker:
+    build: ../
+    image: funtech_celery_worker
+    container_name: funtech_celery_worker
+    command: celery -A config.celery.app worker worker -l INFO
+    volumes:
+      - static_value:/app/static/
+      - media_value:/app/media/
+    env_file:
+      - ./.env
+    restart: always
+    depends_on:
+      - db
+      - redis
 
   nginx:
     image: nginx:1.25.3-alpine

@@ -84,3 +84,21 @@ prune-containers:
 
 prune-images:
 	sudo docker image prune
+
+celery-worker:
+	cd src; python3 -m celery -A config.celery.app worker -l info
+
+logs-backend:
+	sudo docker logs --tail 50 --follow --timestamps backend
+
+logs-nginx:
+	sudo docker logs --tail 50 --follow --timestamps nginx
+
+logs-db:
+	sudo docker logs --tail 50 --follow --timestamps db
+
+logs-redis:
+	sudo docker logs --tail 50 --follow --timestamps funtech_redis
+
+logs-celery-worker:
+	sudo docker logs --tail 50 --follow --timestamps funtech_celery_worker
