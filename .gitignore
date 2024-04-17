@@ -163,7 +163,7 @@ cython_debug/
 .vscode*
 
 # DB dumps
-dump.json
+dump*
 
 # Static folder
 static/

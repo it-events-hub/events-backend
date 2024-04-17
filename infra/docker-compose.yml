@@ -31,7 +31,7 @@ services:
   celery_worker:
     image: hackathonyacrm/funtech_backend:v.01
     container_name: funtech_celery_worker
-    command: celery -A config.celery.app worker worker -l INFO
+    command: celery -A config.celery.app worker -l INFO
     volumes:
       - static_value:/app/static/
       - media_value:/app/media/
