@@ -2,6 +2,7 @@ from typing import Any
 
 from django.db import transaction
 from django.db.models import Exists, OuterRef, Prefetch
+from django.utils.translation import gettext as _
 from drf_yasg.utils import swagger_serializer_method
 from rest_framework import serializers
 
@@ -151,6 +152,8 @@ class EventListSerializer(serializers.ModelSerializer):
     submitted_applications = serializers.SerializerMethodField()
     first_speaker = serializers.SerializerMethodField()
     image = Base64ImageField()
+    status = serializers.CharField(source='get_status_display')
+    format = serializers.CharField(source='get_format_display')
 
     class Meta:
         model = Event
