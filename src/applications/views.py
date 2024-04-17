@@ -21,10 +21,10 @@ from .serializers import (
     ApplicationCreateAuthorizedSerializer,
     NotificationSettingsSerializer,
 )
+from .tasks import send_email_after_submission_of_application
 from api.loggers import logger
 from api.mixins import DestroyWithPayloadMixin
-
-# from api.permissions import IsAuthorOrCreateOnly
+from api.permissions import IsAuthorOrCreateOnly
 from users.models import Specialization
 
 
@@ -34,8 +34,7 @@ class ApplicationViewSet(
     """ViewSet to create and delete applications for participation in events."""
 
     queryset = Application.objects.all()
-    # TODO: вернуть permission_classes, когда фронты скажут, что уже можно
-    # permission_classes = [IsAuthorOrCreateOnly]
+    permission_classes = [IsAuthorOrCreateOnly]
 
     def get_serializer_class(self):
         if self.request.user.is_authenticated:
@@ -121,6 +120,16 @@ class ApplicationViewSet(
 
         EventClosureController.check_event_limits_and_close_registration(
             serializer.validated_data["event"]
+        )
+        first_name: str = serializer.validated_data["first_name"]
+        event_name: str = serializer.validated_data["event"].name
+        to_email: str = serializer.validated_data["email"]
+        send_email_after_submission_of_application.delay(
+            first_name, event_name, to_email
+        )
+        logger.debug(
+            f"Email for {first_name} that the application to participate in "
+            f"{event_name} has been submitted was send to {to_email}."
         )
 
     def perform_destroy(self, instance):

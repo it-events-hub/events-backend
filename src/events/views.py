@@ -5,7 +5,7 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
 from rest_framework.mixins import ListModelMixin
-from rest_framework.permissions import AllowAny  # , IsAdminUser, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
@@ -23,8 +23,7 @@ from .serializers import (
 )
 from api.filters import EventsFilter
 from api.pagination import CustomPageNumberPagination
-
-# from api.permissions import IsAdminOrReadOnly
+from api.permissions import IsAdminOrReadOnly
 from users.models import Specialization
 
 
@@ -47,8 +46,7 @@ class EventViewSet(ModelViewSet):
     ordering_fields = ["start_time", "name"]
     ordering = ["pk"]
     pagination_class = CustomPageNumberPagination
-    # TODO: вернуть permission_classes, когда фронты скажут, что уже можно
-    # permission_classes = [IsAdminOrReadOnly]
+    permission_classes = [IsAdminOrReadOnly]
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -78,17 +76,13 @@ class EventViewSet(ModelViewSet):
             return Response(response_serializer.data, status=HTTP_200_OK)
         return Response(serializer.errors, status=HTTP_400_BAD_REQUEST)
 
-    # TODO: вернуть permission_classes, когда фронты скажут, что уже можно
-    # @action(detail=True, methods=["patch"], permission_classes=[IsAdminUser])
-    @action(detail=True, methods=["patch"])
+    @action(detail=True, methods=["patch"], permission_classes=[IsAdminUser])
     def deactivate(self, request, pk=None):
         """Deactivate a specific event."""
         instance = self.get_object()
         return self._change_event_status(request, instance, is_deleted=True)
 
-    # TODO: вернуть permission_classes, когда фронты скажут, что уже можно
-    # @action(detail=True, methods=["patch"], permission_classes=[IsAdminUser])
-    @action(detail=True, methods=["patch"])
+    @action(detail=True, methods=["patch"], permission_classes=[IsAdminUser])
     def activate(self, request, pk=None):
         """Activate a specific event."""
         instance = self.get_object()

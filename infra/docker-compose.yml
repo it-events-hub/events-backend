@@ -8,6 +8,11 @@ services:
     restart: always
     env_file:
       - ./.env
+  
+  redis:
+    image: redis:7-alpine
+    container_name: funtech_redis
+    restart: always
 
   backend:
     image: hackathonyacrm/funtech_backend:v.01
@@ -22,6 +27,20 @@ services:
       - ./.env
     command: >
       sh -c "gunicorn config.wsgi:application --bind 0:8000"
+
+  celery_worker:
+    image: hackathonyacrm/funtech_backend:v.01
+    container_name: funtech_celery_worker
+    command: celery -A config.celery.app worker -l INFO
+    volumes:
+      - static_value:/app/static/
+      - media_value:/app/media/
+    env_file:
+      - ./.env
+    restart: always
+    depends_on:
+      - db
+      - redis
 
   frontend:
     image: hackathonyacrm/funtech_frontend:v.01

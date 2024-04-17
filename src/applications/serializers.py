@@ -1,11 +1,13 @@
 from typing import Any
 
+import pytz
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 from rest_framework import serializers
 from rest_framework.serializers import ValidationError
 
 from .models import Application, NotificationSettings
+from .tasks import remind_participant_about_upcoming_event
 from .utils import (
     APPLICATION_ACTIVITY_ANONYMOUS_ERROR,
     APPLICATION_ACTIVITY_AUTHORIZED_ERROR,
@@ -315,6 +317,22 @@ class NotificationSettingsSerializer(serializers.ModelSerializer):
         if obj.user:
             return bool(obj.user.telegram)
         return bool(obj.application.telegram)
+
+    def update(self, instance, validated_data):
+        super().update(instance, validated_data)
+        if not instance.user and instance.application and instance.email_notifications:
+            first_name = instance.application.first_name
+            event_name = instance.application.event.name
+            to_email = instance.application.email
+            start_time = instance.application.event.start_time.astimezone(
+                pytz.timezone("Europe/Moscow")
+            )
+            date = start_time.strftime("%d-%m-%Y")
+            time = start_time.strftime("%H:%M")
+            remind_participant_about_upcoming_event.delay(
+                first_name, event_name, date, time, to_email
+            )
+        return instance
 
 
 class DestroyObjectSuccessSerializer(serializers.Serializer):

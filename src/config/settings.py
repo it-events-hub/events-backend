@@ -30,7 +30,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", default="key")
 
 # Development or Production
 MODE = os.getenv("MODE", default="prod")
-DOCKER = os.getenv("DOCKER", default="yes")
+DOCKER = os.getenv("DOCKER", default="no")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 if MODE == "dev":
@@ -81,10 +81,11 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "config.urls"
 
+TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [TEMPLATES_DIR],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -227,11 +228,16 @@ CSRF_COOKIE_SECURE = True
 
 # Email settings
 
-EMAIL_USE_TLS = True
-EMAIL_HOST = os.getenv("EMAIL_HOST")
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
-EMAIL_PORT = os.getenv("EMAIL_PORT")
-# TODO: убрать закомментированный код перед финальной сдачей работы на проверку
-# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_USE_TLS = False
+EMAIL_USE_SSL = True
+EMAIL_HOST = "smtp.yandex.ru"
+EMAIL_HOST_USER = os.getenv("EMAIL")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
+EMAIL_PORT = 465
+SERVER_EMAIL = EMAIL_HOST_USER
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+# Celery settings
+
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER", default="redis://127.0.0.1:6379")
+CELERY_RESULT_BACKEND = os.getenv("CELERY_BACKEND", default="redis://127.0.0.1:6379")
