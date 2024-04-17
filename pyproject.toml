@@ -25,6 +25,7 @@ pytest-django = "^4.8.0"
 django-silk = "^5.1.0"
 pytest-factoryboy = "^2.7.0"
 faker = "^24.9.0"
+celery = {extras = ["redis"], version = "^5.3.6"}
 
 
 [tool.poetry.group.dev.dependencies]

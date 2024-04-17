@@ -21,6 +21,7 @@ from .serializers import (
     ApplicationCreateAuthorizedSerializer,
     NotificationSettingsSerializer,
 )
+from .tasks import send_email_after_submission_of_application
 from api.loggers import logger
 from api.mixins import DestroyWithPayloadMixin
 
@@ -121,6 +122,16 @@ class ApplicationViewSet(
 
         EventClosureController.check_event_limits_and_close_registration(
             serializer.validated_data["event"]
+        )
+        first_name: str = serializer.validated_data["first_name"]
+        event_name: str = serializer.validated_data["event"].name
+        to_email: str = serializer.validated_data["email"]
+        send_email_after_submission_of_application.delay(
+            first_name, event_name, to_email
+        )
+        logger.debug(
+            f"Email for {first_name} that the application to participate in "
+            f"{event_name} has been submitted was send to {to_email}."
         )
 
     def perform_destroy(self, instance):
