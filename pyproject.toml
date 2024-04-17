@@ -1,0 +1,40 @@
+[tool.poetry]
+name = "events-backend"
+version = "0.1.0"
+description = ""
+authors = ["earlinn <earlinndrow@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+django = "^5.0.3"
+python-dotenv = "^1.0.1"
+python-dateutil = "^2.9.0.post0"
+pillow = "^10.3.0"
+djangorestframework = "^3.15.1"
+drf-standardized-errors = "^0.13.0"
+django-cors-headers = "^4.3.1"
+drf-yasg = "^1.21.7"
+django-filter = "^24.2"
+djoser = "^2.2.2"
+django-templated-mail = "^1.1.1"
+gunicorn = "^21.2.0"
+psycopg2-binary = "^2.9.9"
+pytest = "^8.1.1"
+pytest-django = "^4.8.0"
+django-silk = "^5.1.0"
+pytest-factoryboy = "^2.7.0"
+faker = "^24.9.0"
+
+
+[tool.poetry.group.dev.dependencies]
+flake8 = "^7.0.0"
+pep8-naming = "^0.13.3"
+flake8-broken-line = "^1.0.0"
+flake8-return = "^1.2.0"
+flake8-isort = "^6.1.1"
+black = "^24.3.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
