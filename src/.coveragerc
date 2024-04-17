@@ -1,0 +1,22 @@
+[run]
+source = .
+omit =
+  *venv/*
+  *venv/bin/*
+  *venv/include/*
+  *venv/lib/*
+  *manage.py
+  */settings.py
+  */local_settings.py
+  */tests/*
+  *apps.py
+  */migrations/*
+  *wsgi.py
+  *asgi.py
+  *__init__*
+  */__pycache__/*
+  */site-packages/*
+  */distutils/*
+
+[report]
+show_missing = True
